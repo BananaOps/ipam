@@ -1,0 +1,134 @@
+syntax = "proto3";
+
+package ipam;
+
+option go_package = "github.com/bananaops/ipam-bananaops/proto";
+
+// Subnet represents a network subnet with all its properties
+message Subnet {
+  string id = 1;
+  string cidr = 2;
+  string name = 3;
+  string description = 4;
+  string location = 5;
+  LocationType location_type = 6;
+  CloudInfo cloud_info = 7;
+  SubnetDetails details = 8;
+  UtilizationInfo utilization = 9;
+  int64 created_at = 10;
+  int64 updated_at = 11;
+}
+
+// LocationType defines where the subnet is located
+enum LocationType {
+  DATACENTER = 0;
+  SITE = 1;
+  CLOUD = 2;
+}
+
+// CloudInfo contains cloud provider specific information
+message CloudInfo {
+  string provider = 1;
+  string region = 2;
+  string account_id = 3;
+}
+
+// SubnetDetails contains calculated subnet properties
+message SubnetDetails {
+  string address = 1;
+  string netmask = 2;
+  string wildcard = 3;
+  string network = 4;
+  string type = 5;
+  string broadcast = 6;
+  string host_min = 7;
+  string host_max = 8;
+  int32 hosts_per_net = 9;
+  bool is_public = 10;
+}
+
+// UtilizationInfo tracks IP address usage
+message UtilizationInfo {
+  int32 total_ips = 1;
+  int32 allocated_ips = 2;
+  float utilization_percent = 3;
+}
+
+// CreateSubnetRequest is used to create a new subnet
+message CreateSubnetRequest {
+  string cidr = 1;
+  string name = 2;
+  string description = 3;
+  string location = 4;
+  LocationType location_type = 5;
+  CloudInfo cloud_info = 6;
+}
+
+// CreateSubnetResponse returns the created subnet or error
+message CreateSubnetResponse {
+  Subnet subnet = 1;
+  Error error = 2;
+}
+
+// ListSubnetsRequest is used to query subnets with filters
+message ListSubnetsRequest {
+  string location_filter = 1;
+  string cloud_provider_filter = 2;
+  string search_query = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+}
+
+// ListSubnetsResponse returns a list of subnets
+message ListSubnetsResponse {
+  repeated Subnet subnets = 1;
+  int32 total_count = 2;
+  Error error = 3;
+}
+
+// GetSubnetRequest is used to retrieve a specific subnet
+message GetSubnetRequest {
+  string id = 1;
+}
+
+// GetSubnetResponse returns the requested subnet or error
+message GetSubnetResponse {
+  Subnet subnet = 1;
+  Error error = 2;
+}
+
+// UpdateSubnetRequest is used to update an existing subnet
+message UpdateSubnetRequest {
+  string id = 1;
+  string cidr = 2;
+  string name = 3;
+  string description = 4;
+  string location = 5;
+  LocationType location_type = 6;
+  CloudInfo cloud_info = 7;
+}
+
+// UpdateSubnetResponse returns the updated subnet or error
+message UpdateSubnetResponse {
+  Subnet subnet = 1;
+  Error error = 2;
+}
+
+// DeleteSubnetRequest is used to delete a subnet
+message DeleteSubnetRequest {
+  string id = 1;
+}
+
+// DeleteSubnetResponse confirms deletion or returns error
+message DeleteSubnetResponse {
+  bool success = 1;
+  Error error = 2;
+}
+
+// Error represents a structured error response
+message Error {
+  string code = 1;
+  string message = 2;
+  map<string, string> details = 3;
+  int64 timestamp = 4;
+}

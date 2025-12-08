@@ -1,0 +1,13 @@
+version: v1
+plugins:
+  # Go generation
+  - plugin: buf.build/protocolbuffers/go
+    out: backend
+    opt:
+      - paths=source_relative
+  
+  # TypeScript generation
+  - plugin: buf.build/community/timostamm-protobuf-ts
+    out: frontend/src/proto
+    opt:
+      - generate_dependencies

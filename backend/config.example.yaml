@@ -1,0 +1,15 @@
+server:
+  port: 8080
+  host: "0.0.0.0"
+
+database:
+  type: "sqlite"  # or "mongodb"
+  path: "./data/ipam.db"  # for SQLite
+  # connection_string: "mongodb://localhost:27017"  # for MongoDB
+
+ipam:
+  default_allocation_size: 256
+
+cloud_providers:
+  enabled: false  # Enable when cloud modules are implemented
+  sync_interval: "5m"

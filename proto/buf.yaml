@@ -1,0 +1,8 @@
+version: v1
+name: buf.build/bananaops/ipam-bananaops
+lint:
+  use:
+    - DEFAULT
+breaking:
+  use:
+    - FILE

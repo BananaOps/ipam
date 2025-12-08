@@ -1,0 +1,142 @@
+version: '3'
+
+vars:
+  BACKEND_DIR: backend
+  FRONTEND_DIR: frontend
+  PROTO_DIR: proto
+  DOCKER_REGISTRY: ghcr.io/bananaops
+  IMAGE_NAME: ipam-bananaops
+
+tasks:
+  # Development tasks
+  dev:
+    desc: Run both backend and frontend in development mode
+    deps: [dev:backend, dev:frontend]
+
+  dev:backend:
+    desc: Run backend in development mode
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - go run cmd/server/main.go
+
+  dev:frontend:
+    desc: Run frontend in development mode
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npm run dev
+
+  # Build tasks
+  build:
+    desc: Build both backend and frontend
+    deps: [build:backend, build:frontend]
+
+  build:backend:
+    desc: Build backend binary
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - task: proto:generate
+      - go build -o ../bin/ipam-server cmd/server/main.go
+
+  build:frontend:
+    desc: Build frontend for production
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npm run build
+
+  # Protobuf generation
+  proto:generate:
+    desc: Generate Protobuf code for Go and TypeScript using buf
+    cmds:
+      - buf generate
+
+  # Test tasks
+  test:
+    desc: Run all tests
+    deps: [test:backend, test:frontend]
+
+  test:backend:
+    desc: Run backend tests
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - go test -v ./...
+
+  test:backend:coverage:
+    desc: Run backend tests with coverage
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - go test -v -coverprofile=coverage.out ./...
+      - go tool cover -html=coverage.out -o coverage.html
+
+  test:frontend:
+    desc: Run frontend tests
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npm run test
+
+  # Lint tasks
+  lint:
+    desc: Run linters for backend and frontend
+    deps: [lint:backend, lint:frontend]
+
+  lint:backend:
+    desc: Run Go linter
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - golangci-lint run
+
+  lint:frontend:
+    desc: Run ESLint
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npm run lint
+
+  # Docker tasks
+  docker:build:
+    desc: Build Docker images
+    cmds:
+      - docker build -t {{.DOCKER_REGISTRY}}/{{.IMAGE_NAME}}-backend:latest -f docker/Dockerfile.backend .
+      - docker build -t {{.DOCKER_REGISTRY}}/{{.IMAGE_NAME}}-frontend:latest -f docker/Dockerfile.frontend .
+
+  docker:push:
+    desc: Push Docker images to registry
+    cmds:
+      - docker push {{.DOCKER_REGISTRY}}/{{.IMAGE_NAME}}-backend:latest
+      - docker push {{.DOCKER_REGISTRY}}/{{.IMAGE_NAME}}-frontend:latest
+
+  # Database tasks
+  db:migrate:
+    desc: Run database migrations
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - go run cmd/migrate/main.go
+
+  db:seed:
+    desc: Seed database with sample data
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - go run cmd/seed/main.go
+
+  # Clean tasks
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf bin/
+      - rm -rf {{.FRONTEND_DIR}}/dist/
+      - rm -rf {{.BACKEND_DIR}}/coverage.*
+
+  # Install dependencies
+  install:
+    desc: Install all dependencies
+    deps: [install:backend, install:frontend]
+
+  install:backend:
+    desc: Install backend dependencies
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - go mod download
+
+  install:frontend:
+    desc: Install frontend dependencies
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npm install
