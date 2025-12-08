@@ -54,7 +54,7 @@ func (r *SQLiteRepository) initSchema() error {
 		id TEXT PRIMARY KEY,
 		cidr TEXT UNIQUE NOT NULL,
 		name TEXT NOT NULL,
-		descrip
+		description TEXT,
 		location TEXT,
 		location_type TEXT,
 		cloud_provider TEXT,

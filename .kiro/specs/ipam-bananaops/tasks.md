@@ -43,7 +43,7 @@
   - Test error handling for malformed JSON
   - **Validates: Requirements 10.2, 10.3**
 
-- [-] 5. Implement backend database layer
+- [x] 5. Implement backend database layer
   - Create SubnetRepository interface
   - Implement SQLite repository with CRUD operations
   - Implement MongoDB repository with CRUD operations
@@ -55,7 +55,7 @@
   - **Property 8: Database persistence round-trip**
   - **Validates: Requirements 5.3**
 
-- [ ] 6. Implement IP calculation service with go-ipam
+- [x] 6. Implement IP calculation service with go-ipam
   - Create IPService with go-ipam integration
   - Implement CIDR validation function
   - Implement subnet details calculation (address, netmask, wildcard, network, broadcast, hostMin, hostMax, hostsPerNet)
