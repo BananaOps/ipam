@@ -1,14 +1,35 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { ToastProvider } from './contexts/ToastContext';
+import ErrorBoundary from './components/ErrorBoundary';
+import Layout from './components/Layout';
+import SubnetListPage from './pages/SubnetListPage';
+import SubnetDetailPage from './pages/SubnetDetailPage';
+import CreateSubnetPage from './pages/CreateSubnetPage';
+import EditSubnetPage from './pages/EditSubnetPage';
+
 function App() {
   return (
-    <div className="app">
-      <header>
-        <h1>IPAM by BananaOps</h1>
-      </header>
-      <main>
-        <p>Welcome to IPAM by BananaOps</p>
-      </main>
-    </div>
-  )
+    <ErrorBoundary>
+      <ThemeProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                <Route index element={<SubnetListPage />} />
+                <Route path="subnets">
+                  <Route index element={<SubnetListPage />} />
+                  <Route path="create" element={<CreateSubnetPage />} />
+                  <Route path=":id" element={<SubnetDetailPage />} />
+                  <Route path=":id/edit" element={<EditSubnetPage />} />
+                </Route>
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </ToastProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
+  );
 }
 
-export default App
+export default App;

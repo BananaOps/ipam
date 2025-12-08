@@ -1,0 +1,32 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Cyber Minimal IPAM Logo -->
+  <!-- Represents network topology with geometric precision -->
+  
+  <!-- Outer hexagon frame (network perimeter) -->
+  <path d="M100 20 L160 55 L160 125 L100 160 L40 125 L40 55 Z" 
+        stroke="#0EA5E9" 
+        stroke-width="3" 
+        fill="none"
+        stroke-linejoin="miter"/>
+  
+  <!-- Inner network nodes (IP addresses) -->
+  <circle cx="100" cy="60" r="8" fill="#0EA5E9"/>
+  <circle cx="70" cy="85" r="8" fill="#0EA5E9"/>
+  <circle cx="130" cy="85" r="8" fill="#0EA5E9"/>
+  <circle cx="85" cy="120" r="8" fill="#0EA5E9"/>
+  <circle cx="115" cy="120" r="8" fill="#0EA5E9"/>
+  
+  <!-- Central hub (gateway/router) -->
+  <circle cx="100" cy="100" r="12" fill="#0A1A2F" stroke="#0EA5E9" stroke-width="2"/>
+  
+  <!-- Connection lines (network paths) -->
+  <line x1="100" y1="60" x2="100" y2="88" stroke="#0EA5E9" stroke-width="2" opacity="0.6"/>
+  <line x1="70" y1="85" x2="88" y2="95" stroke="#0EA5E9" stroke-width="2" opacity="0.6"/>
+  <line x1="130" y1="85" x2="112" y2="95" stroke="#0EA5E9" stroke-width="2" opacity="0.6"/>
+  <line x1="85" y1="120" x2="92" y2="108" stroke="#0EA5E9" stroke-width="2" opacity="0.6"/>
+  <line x1="115" y1="120" x2="108" y2="108" stroke="#0EA5E9" stroke-width="2" opacity="0.6"/>
+  
+  <!-- Subnet indicator (CIDR block representation) -->
+  <rect x="75" y="140" width="50" height="20" rx="3" fill="#0A1A2F" stroke="#0EA5E9" stroke-width="2"/>
+  <text x="100" y="154" font-family="monospace" font-size="12" fill="#0EA5E9" text-anchor="middle" font-weight="bold">/24</text>
+</svg>

@@ -1,0 +1,360 @@
+/* SubnetDetail Component Styles */
+
+.subnet-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Header Section */
+.subnet-detail-header {
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 1rem;
+}
+
+.subnet-name {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem 0;
+}
+
+.subnet-description {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Info Section */
+.subnet-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.info-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 140px;
+  font-size: 0.95rem;
+}
+
+.info-value {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.cidr-value {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: var(--accent-color);
+  font-size: 1.1rem;
+}
+
+/* Properties Section */
+.subnet-properties-section {
+  padding: 1.5rem;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 1.25rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.properties-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.property-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background-color: var(--bg-primary);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.property-item:hover {
+  border-color: var(--accent-color);
+  box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.property-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.property-value {
+  font-size: 1rem;
+  color: var(--text-primary);
+  font-family: 'Courier New', monospace;
+  word-break: break-all;
+}
+
+.property-value.classification {
+  font-family: inherit;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.property-value.classification.public {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: var(--color-info);
+  border: 1px solid var(--color-info);
+}
+
+.property-value.classification.private {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
+}
+
+/* Utilization Section */
+.subnet-utilization-section {
+  padding: 1.5rem;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.utilization-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.utilization-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem;
+  background-color: var(--bg-primary);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Utilization Percentage */
+.utilization-percentage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  background-color: var(--bg-primary);
+  border-radius: 8px;
+  border: 2px solid var(--border-color);
+  transition: border-color 0.3s, background-color 0.3s;
+}
+
+.utilization-percentage.high-utilization {
+  border-color: var(--color-warning);
+  background-color: rgba(245, 158, 11, 0.05);
+}
+
+.percentage-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--accent-color);
+}
+
+.utilization-percentage.high-utilization .percentage-value {
+  color: var(--color-warning);
+}
+
+.high-utilization-indicator {
+  font-size: 2rem;
+  color: var(--color-warning);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+/* Progress Bar */
+.utilization-progress-container {
+  width: 100%;
+  height: 24px;
+  background-color: var(--bg-primary);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  position: relative;
+}
+
+.utilization-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-color), var(--color-info));
+  border-radius: 12px;
+  transition: width 0.5s ease, background 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.utilization-progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.utilization-progress-bar.high {
+  background: linear-gradient(90deg, var(--color-warning), var(--color-error));
+}
+
+/* High Utilization Warning */
+.high-utilization-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: rgba(245, 158, 11, 0.1);
+  border: 1px solid var(--color-warning);
+  border-radius: 6px;
+  color: var(--text-primary);
+}
+
+.warning-icon {
+  font-size: 1.5rem;
+  color: var(--color-warning);
+  flex-shrink: 0;
+}
+
+.warning-text {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .properties-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .utilization-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .subnet-name {
+    font-size: 1.5rem;
+  }
+
+  .percentage-value {
+    font-size: 2rem;
+  }
+
+  .info-label {
+    min-width: 120px;
+    font-size: 0.9rem;
+  }
+
+  .info-value {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .subnet-detail {
+    gap: 1.5rem;
+  }
+
+  .subnet-properties-section,
+  .subnet-utilization-section {
+    padding: 1rem;
+  }
+
+  .info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .info-label {
+    min-width: auto;
+  }
+}
+
+/* Cloud Provider Display */
+.cloud-provider-display {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cloud-provider-display .provider-name {
+  font-weight: 600;
+}

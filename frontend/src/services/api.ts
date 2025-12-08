@@ -1,0 +1,315 @@
+// REST API client service for IPAM backend communication
+
+import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import type {
+  Subnet,
+  SubnetFilters,
+  CreateSubnetRequest,
+  UpdateSubnetRequest,
+  SubnetListResponse,
+  APIError,
+} from '../types';
+import { API_BASE_URL } from '../config/constants';
+
+/**
+ * APIClient class for communicating with the IPAM backend REST API
+ * Handles all HTTP operations with proper error handling and interceptors
+ */
+class APIClient {
+  private axiosInstance: AxiosInstance;
+  private authToken: string | null = null;
+  private maxRetries: number = 3;
+  private retryDelay: number = 1000; // milliseconds
+
+  constructor(baseURL: string = API_BASE_URL) {
+    // Create axios instance with default configuration
+    this.axiosInstance = axios.create({
+      baseURL,
+      timeout: 10000,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    // Set up request interceptor for authentication
+    this.axiosInstance.interceptors.request.use(
+      (config: InternalAxiosRequestConfig) => {
+        // Add authentication token if available (for future use)
+        if (this.authToken && config.headers) {
+          config.headers.Authorization = `Bearer ${this.authToken}`;
+        }
+        return config;
+      },
+      (error) => {
+        return Promise.reject(error);
+      }
+    );
+
+    // Set up response interceptor for error handling
+    this.axiosInstance.interceptors.response.use(
+      (response) => {
+        // Return successful responses as-is
+        return response;
+      },
+      (error: AxiosError) => {
+        // Transform errors into consistent APIError format
+        const apiError = this.handleError(error);
+        return Promise.reject(apiError);
+      }
+    );
+  }
+
+  /**
+   * Set authentication token for future requests
+   * @param token - JWT or other authentication token
+   */
+  setAuthToken(token: string | null): void {
+    this.authToken = token;
+  }
+
+  /**
+   * Get current authentication token
+   */
+  getAuthToken(): string | null {
+    return this.authToken;
+  }
+
+  /**
+   * Configure retry settings
+   * @param maxRetries - Maximum number of retry attempts
+   * @param retryDelay - Delay between retries in milliseconds
+   */
+  setRetryConfig(maxRetries: number, retryDelay: number): void {
+    this.maxRetries = maxRetries;
+    this.retryDelay = retryDelay;
+  }
+
+  /**
+   * Retry a failed request with exponential backoff
+   * @param fn - Function to retry
+   * @param retries - Number of retries remaining
+   * @returns Promise with the result
+   */
+  private async retryRequest<T>(
+    fn: () => Promise<T>,
+    retries: number = this.maxRetries
+  ): Promise<T> {
+    try {
+      return await fn();
+    } catch (error) {
+      if (retries <= 0) {
+        throw error;
+      }
+
+      // Only retry on network errors or 5xx server errors
+      const shouldRetry = this.shouldRetryError(error as AxiosError);
+      if (!shouldRetry) {
+        throw error;
+      }
+
+      // Calculate delay with exponential backoff
+      const delay = this.retryDelay * Math.pow(2, this.maxRetries - retries);
+      
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      
+      return this.retryRequest(fn, retries - 1);
+    }
+  }
+
+  /**
+   * Determine if an error should trigger a retry
+   * @param error - Axios error object
+   * @returns true if the request should be retried
+   */
+  private shouldRetryError(error: AxiosError): boolean {
+    // Retry on network errors
+    if (!error.response) {
+      return true;
+    }
+
+    // Retry on 5xx server errors
+    const status = error.response.status;
+    if (status >= 500 && status < 600) {
+      return true;
+    }
+
+    // Retry on 429 (Too Many Requests)
+    if (status === 429) {
+      return true;
+    }
+
+    // Don't retry on client errors (4xx)
+    return false;
+  }
+
+  /**
+   * Create a new subnet
+   * @param data - Subnet creation data
+   * @returns Created subnet with calculated properties
+   */
+  async createSubnet(data: CreateSubnetRequest): Promise<Subnet> {
+    return this.retryRequest(async () => {
+      const response = await this.axiosInstance.post<Subnet>('/subnets', data);
+      return response.data;
+    });
+  }
+
+  /**
+   * List subnets with optional filters
+   * @param filters - Optional filters for location, cloud provider, and search
+   * @returns List of subnets matching the filters
+   */
+  async listSubnets(filters: SubnetFilters = {}): Promise<SubnetListResponse> {
+    return this.retryRequest(async () => {
+      const params = new URLSearchParams();
+      
+      if (filters.location) {
+        params.append('location', filters.location);
+      }
+      if (filters.cloudProvider) {
+        params.append('cloudProvider', filters.cloudProvider);
+      }
+      if (filters.searchQuery) {
+        params.append('search', filters.searchQuery);
+      }
+
+      const response = await this.axiosInstance.get<SubnetListResponse>('/subnets', {
+        params,
+      });
+      return response.data;
+    });
+  }
+
+  /**
+   * Get a specific subnet by ID
+   * @param id - Subnet ID
+   * @returns Subnet details
+   */
+  async getSubnet(id: string): Promise<Subnet> {
+    return this.retryRequest(async () => {
+      const response = await this.axiosInstance.get<Subnet>(`/subnets/${id}`);
+      return response.data;
+    });
+  }
+
+  /**
+   * Update an existing subnet
+   * @param id - Subnet ID
+   * @param data - Updated subnet data
+   * @returns Updated subnet with recalculated properties
+   */
+  async updateSubnet(id: string, data: UpdateSubnetRequest): Promise<Subnet> {
+    return this.retryRequest(async () => {
+      const response = await this.axiosInstance.put<Subnet>(`/subnets/${id}`, data);
+      return response.data;
+    });
+  }
+
+  /**
+   * Delete a subnet
+   * @param id - Subnet ID
+   */
+  async deleteSubnet(id: string): Promise<void> {
+    return this.retryRequest(async () => {
+      await this.axiosInstance.delete(`/subnets/${id}`);
+    });
+  }
+
+  /**
+   * Handle axios errors and transform them into APIError format
+   * @param error - Axios error object
+   * @returns Structured API error
+   */
+  private handleError(error: AxiosError): APIError {
+    // Check if error response exists and has expected structure
+    if (error.response?.data) {
+      const data = error.response.data as any;
+      
+      // If backend returns structured error, use it
+      if (data.code && data.message) {
+        return {
+          code: data.code,
+          message: data.message,
+          details: data.details,
+          timestamp: data.timestamp || Date.now(),
+        };
+      }
+    }
+
+    // Handle network errors
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      return {
+        code: 'NETWORK_TIMEOUT',
+        message: 'Request timed out. Please check your connection and try again.',
+        timestamp: Date.now(),
+      };
+    }
+
+    if (!error.response) {
+      return {
+        code: 'NETWORK_ERROR',
+        message: 'Unable to connect to the server. Please check your connection.',
+        timestamp: Date.now(),
+      };
+    }
+
+    // Handle HTTP status codes
+    const status = error.response.status;
+    switch (status) {
+      case 400:
+        return {
+          code: 'BAD_REQUEST',
+          message: 'Invalid request data. Please check your input.',
+          timestamp: Date.now(),
+        };
+      case 401:
+        return {
+          code: 'UNAUTHORIZED',
+          message: 'Authentication required. Please log in.',
+          timestamp: Date.now(),
+        };
+      case 403:
+        return {
+          code: 'FORBIDDEN',
+          message: 'You do not have permission to perform this action.',
+          timestamp: Date.now(),
+        };
+      case 404:
+        return {
+          code: 'NOT_FOUND',
+          message: 'The requested resource was not found.',
+          timestamp: Date.now(),
+        };
+      case 409:
+        return {
+          code: 'CONFLICT',
+          message: 'A conflict occurred. The resource may already exist.',
+          timestamp: Date.now(),
+        };
+      case 500:
+        return {
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'An internal server error occurred. Please try again later.',
+          timestamp: Date.now(),
+        };
+      case 503:
+        return {
+          code: 'SERVICE_UNAVAILABLE',
+          message: 'The service is temporarily unavailable. Please try again later.',
+          timestamp: Date.now(),
+        };
+      default:
+        return {
+          code: 'UNKNOWN_ERROR',
+          message: `An unexpected error occurred (${status}).`,
+          timestamp: Date.now(),
+        };
+    }
+  }
+}
+
+// Export singleton instance for use throughout the application
+export const apiClient = new APIClient();
+
+// Export class for testing purposes
+export default APIClient;

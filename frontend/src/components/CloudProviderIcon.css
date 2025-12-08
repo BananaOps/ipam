@@ -1,0 +1,54 @@
+/* Cloud Provider Icon Styling */
+
+.cloud-provider-icon {
+  display: inline-block;
+  vertical-align: middle;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+/* Provider-specific colors (optional, can be overridden by parent) */
+.cloud-provider-icon.aws {
+  color: #FF9900;
+}
+
+.cloud-provider-icon.azure {
+  color: #0078D4;
+}
+
+.cloud-provider-icon.gcp {
+  color: #4285F4;
+}
+
+.cloud-provider-icon.scaleway {
+  color: #4F0599;
+}
+
+.cloud-provider-icon.ovh {
+  color: #123F6D;
+}
+
+/* Hover effect */
+.cloud-provider-icon:hover {
+  transform: scale(1.1);
+}
+
+/* Size variants */
+.cloud-provider-icon.icon-xs {
+  font-size: 0.75rem;
+}
+
+.cloud-provider-icon.icon-sm {
+  font-size: 0.875rem;
+}
+
+.cloud-provider-icon.icon-md {
+  font-size: 1rem;
+}
+
+.cloud-provider-icon.icon-lg {
+  font-size: 1.25rem;
+}
+
+.cloud-provider-icon.icon-xl {
+  font-size: 1.5rem;
+}

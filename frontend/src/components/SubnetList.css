@@ -1,0 +1,345 @@
+/* SubnetList Component Styles */
+
+.subnet-list {
+  width: 100%;
+}
+
+/* Loading State */
+.subnet-list-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  gap: 1rem;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--accent-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error State */
+.subnet-list-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  gap: 1rem;
+}
+
+.error-message {
+  color: var(--color-error);
+  font-size: 1rem;
+}
+
+.retry-button {
+  padding: 0.5rem 1.5rem;
+  background-color: var(--accent-color);
+  color: var(--color-white);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: opacity 0.2s;
+}
+
+.retry-button:hover {
+  opacity: 0.9;
+}
+
+/* Filters Section */
+.subnet-list-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.search-input,
+.filter-input,
+.filter-select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus,
+.filter-input:focus,
+.filter-select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.clear-filters-button {
+  align-self: flex-end;
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.clear-filters-button:hover {
+  background-color: var(--bg-secondary);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+/* Empty State */
+.subnet-list-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  gap: 1rem;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.subnet-list-empty h3 {
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.subnet-list-empty p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.create-subnet-link {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--accent-color);
+  color: var(--color-white);
+  text-decoration: none;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.create-subnet-link:hover {
+  opacity: 0.9;
+}
+
+/* Table Styles */
+.subnet-table-container {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.subnet-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--bg-primary);
+}
+
+.subnet-table thead {
+  background-color: var(--bg-secondary);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.subnet-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.subnet-table tbody tr {
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s;
+}
+
+.subnet-table tbody tr:hover {
+  background-color: var(--bg-secondary);
+}
+
+.subnet-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.subnet-table td {
+  padding: 1rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+/* Table Cell Specific Styles */
+.subnet-cidr {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+}
+
+.subnet-link {
+  color: var(--accent-color);
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.subnet-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+.subnet-name {
+  font-weight: 500;
+}
+
+.location-type-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.location-type-badge.datacenter {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: var(--color-info);
+}
+
+.location-type-badge.site {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
+}
+
+.location-type-badge.cloud {
+  background-color: rgba(14, 165, 233, 0.1);
+  color: var(--accent-color);
+}
+
+/* Cloud Info Styles */
+.cloud-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cloud-provider-icon {
+  font-size: 1.25rem;
+  color: var(--accent-color);
+}
+
+.cloud-region {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.cloud-account {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-family: 'Courier New', monospace;
+}
+
+.no-cloud-info {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Utilization Display */
+.utilization-display {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.utilization-bar {
+  flex: 1;
+  height: 8px;
+  background-color: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+  min-width: 80px;
+}
+
+.utilization-fill {
+  height: 100%;
+  background-color: var(--color-success);
+  transition: width 0.3s ease, background-color 0.3s ease;
+  border-radius: 4px;
+}
+
+.utilization-fill.high {
+  background-color: var(--color-warning);
+}
+
+.utilization-percent {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  min-width: 45px;
+  text-align: right;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .subnet-list-filters {
+    flex-direction: column;
+  }
+
+  .filter-group {
+    min-width: 100%;
+  }
+
+  .subnet-table-container {
+    overflow-x: scroll;
+  }
+
+  .subnet-table {
+    min-width: 800px;
+  }
+}

@@ -1,0 +1,125 @@
+/* Error Boundary Styles */
+.error-boundary {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-secondary);
+  padding: 2rem;
+}
+
+.error-boundary-content {
+  max-width: 600px;
+  width: 100%;
+  background-color: var(--bg-primary);
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  box-shadow: 0 4px 12px var(--shadow-color);
+  text-align: center;
+}
+
+.error-boundary-icon {
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.error-boundary-title {
+  color: var(--text-primary);
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.error-boundary-message {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.error-boundary-details {
+  text-align: left;
+  margin: 2rem 0;
+  padding: 1rem;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.error-boundary-details summary {
+  cursor: pointer;
+  color: var(--text-primary);
+  font-weight: 500;
+  padding: 0.5rem;
+  user-select: none;
+  transition: color 0.2s;
+}
+
+.error-boundary-details summary:hover {
+  color: var(--accent-color);
+}
+
+.error-boundary-stack {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: var(--bg-primary);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  overflow-x: auto;
+}
+
+.error-boundary-stack pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.error-boundary-stack strong {
+  color: var(--text-primary);
+}
+
+.error-boundary-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .error-boundary-content {
+    padding: 2rem 1.5rem;
+  }
+
+  .error-boundary-title {
+    font-size: 1.5rem;
+  }
+
+  .error-boundary-message {
+    font-size: 1rem;
+  }
+
+  .error-boundary-actions {
+    flex-direction: column;
+  }
+
+  .error-boundary-actions button {
+    width: 100%;
+  }
+}

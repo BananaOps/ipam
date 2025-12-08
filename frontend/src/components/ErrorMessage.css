@@ -1,0 +1,112 @@
+/* Error Message Component Styles */
+.error-message-container {
+  background-color: var(--bg-primary);
+  border: 2px solid var(--color-error);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.1);
+}
+
+.error-message-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.error-message-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  color: var(--color-error);
+}
+
+.error-message-content {
+  flex: 1;
+}
+
+.error-message-text {
+  color: var(--text-primary);
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0 0 0.5rem 0;
+  font-weight: 500;
+}
+
+.error-message-code {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-family: 'Courier New', monospace;
+  margin: 0;
+  padding: 0.25rem 0.5rem;
+  background-color: var(--bg-secondary);
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.error-message-details {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: var(--bg-secondary);
+  border-radius: 6px;
+  border-left: 3px solid var(--color-error);
+}
+
+.error-message-details strong {
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.error-message-details ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.error-message-details li {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  padding: 0.25rem 0;
+}
+
+.error-message-details li strong {
+  display: inline;
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.error-message-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.error-message-retry,
+.error-message-dismiss {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.9rem;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .error-message-container {
+    padding: 1rem;
+  }
+
+  .error-message-header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .error-message-actions {
+    flex-direction: column;
+  }
+
+  .error-message-retry,
+  .error-message-dismiss {
+    width: 100%;
+  }
+}

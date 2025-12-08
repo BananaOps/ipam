@@ -75,7 +75,7 @@
   - **Property 14: Utilization calculation accuracy**
   - **Validates: Requirements 9.1**
 
-- [ ] 7. Wire service layer with repositories and IP service
+- [x] 7. Wire service layer with repositories and IP service
   - Connect ServiceLayer to SubnetRepository
   - Connect ServiceLayer to IPService
   - Implement business logic for subnet operations
@@ -99,7 +99,7 @@
   - **Property 16: Structured error responses**
   - **Validates: Requirements 10.5**
 
-- [ ] 8. Implement cloud provider module interface
+- [x] 8. Implement cloud provider module interface
   - Create CloudProvider interface definition
   - Create CloudProviderManager with provider registry
   - Add cloud provider types (AWS, Azure, GCP, Scaleway, OVH)
@@ -110,14 +110,14 @@
   - **Property 9: Cloud provider error resilience**
   - **Validates: Requirements 6.5**
 
-- [ ] 9. Set up frontend project structure
+- [x] 9. Set up frontend project structure
   - Create React app with TypeScript template
   - Install dependencies (FontAwesome, Axios for HTTP requests)
   - Set up routing structure
   - Configure build and development scripts
   - _Requirements: 7.1_
 
-- [ ] 10. Implement theme system
+- [x] 10. Implement theme system
   - Create ThemeContext with dark/light/auto support
   - Implement useSystemTheme hook for system preference detection
   - Implement theme persistence to localStorage
@@ -134,7 +134,7 @@
   - **Property 6: System theme synchronization**
   - **Validates: Requirements 3.4**
 
-- [ ] 11. Create REST API client service
+- [x] 11. Create REST API client service
   - Create APIClient class with Axios
   - Implement HTTP methods for all endpoints (POST, GET, PUT, DELETE)
   - Add request/response interceptors for error handling
@@ -148,7 +148,7 @@
   - Test error handling
   - **Validates: Requirements 10.2, 10.3**
 
-- [ ] 12. Implement subnet list component
+- [x] 12. Implement subnet list component
   - Create SubnetList component with table/grid layout
   - Implement location filter UI (datacenter, site, cloud)
   - Implement cloud provider filter with FontAwesome icons
@@ -166,7 +166,7 @@
   - **Property 2: Cloud provider metadata completeness**
   - **Validates: Requirements 1.3, 1.4, 6.3**
 
-- [ ] 13. Implement subnet detail component
+- [x] 13. Implement subnet detail component
   - Create SubnetDetail component with detailed layout
   - Display subnet name and description
   - Display all subnet properties (address, netmask, wildcard, network, type, broadcast, hostMin, hostMax, hostsPerNet)
@@ -184,7 +184,7 @@
   - **Property 15: High utilization visual indication**
   - **Validates: Requirements 9.3**
 
-- [ ] 14. Implement subnet creation form
+- [x] 14. Implement subnet creation form
   - Create form component with CIDR input
   - Add name and description fields
   - Add location field
@@ -194,7 +194,7 @@
   - Display success/error feedback
   - _Requirements: 8.1, 8.2, 8.5_
 
-- [ ] 15. Implement subnet update functionality
+- [x] 15. Implement subnet update functionality
   - Create edit form component
   - Pre-populate form with existing subnet data
   - Implement update submission
@@ -202,7 +202,7 @@
   - Display success/error feedback
   - _Requirements: 8.3, 8.5_
 
-- [ ] 16. Implement subnet deletion functionality
+- [x] 16. Implement subnet deletion functionality
   - Add delete button to subnet detail view
   - Implement confirmation dialog
   - Connect to API delete endpoint via APIClient
@@ -210,14 +210,14 @@
   - Display success/error feedback
   - _Requirements: 8.4, 8.5_
 
-- [ ] 17. Create cloud provider icon mapping
+- [x] 17. Create cloud provider icon mapping
   - Define FontAwesome icon constants for each provider
   - Create CloudProviderIcon component
   - Implement icon selection logic based on provider type
   - Apply consistent styling
   - _Requirements: 1.4, 6.3_
 
-- [ ] 18. Implement error handling UI
+- [x] 18. Implement error handling UI
   - Create error boundary component
   - Create error message display component
   - Implement toast/notification system for errors
@@ -225,7 +225,7 @@
   - Display user-friendly error messages
   - _Requirements: 2.5, 8.5_
 
-- [ ] 19. Design and implement logo
+- [x] 19. Design and implement logo
   - Create logo following Cyber Minimal style
   - Use color palette (Bleu nuit, Bleu cyan, Gris clair, Blanc)
   - Export logo in multiple formats (SVG, PNG)
