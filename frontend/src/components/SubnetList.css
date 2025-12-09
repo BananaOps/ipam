@@ -344,32 +344,27 @@
 
 .cloud-label {
   display: inline-block;
-  padding: 0.35rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
   font-weight: 600;
   text-align: center;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-}
-
-.cloud-label:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  border-color: rgba(0, 0, 0, 0.2);
+  letter-spacing: 0.02em;
 }
 
 .cloud-region-label {
   font-family: inherit;
+  text-transform: uppercase;
+  font-size: 0.7rem;
 }
 
 .cloud-account-label {
   font-family: 'Courier New', monospace;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
 }
 
 .no-cloud-info {
@@ -451,12 +446,16 @@
   }
   
   .cloud-label {
-    font-size: 0.7rem;
-    padding: 0.3rem 0.6rem;
+    font-size: 0.65rem;
+    padding: 0.2rem 0.6rem;
+  }
+  
+  .cloud-region-label {
+    font-size: 0.65rem;
   }
   
   .cloud-account-label {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
   }
   
   .utilization-display {

@@ -18,6 +18,8 @@ interface SubnetListProps {
 /**
  * Generate a consistent color for a given text string
  * Same text will always produce the same color
+ * Uses subtle colors similar to location-type badges
+ * Optimized for both light and dark modes
  */
 function getColorForText(text: string): { backgroundColor: string; color: string } {
   // Simple hash function to convert string to number
@@ -26,13 +28,14 @@ function getColorForText(text: string): { backgroundColor: string; color: string
     hash = text.charCodeAt(i) + ((hash << 5) - hash);
   }
   
-  // Convert hash to HSL color (using hue only, keeping saturation and lightness fixed)
+  // Convert hash to HSL color with subtle, pastel tones
   const hue = Math.abs(hash % 360);
-  const saturation = 65; // Medium saturation for pleasant colors
-  const lightness = 85; // Light background
+  const saturation = 75; // Good saturation for visibility
   
-  const backgroundColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-  const textColor = `hsl(${hue}, ${saturation + 10}%, 35%)`; // Darker text for contrast
+  // Create a subtle background with higher opacity for better visibility
+  const backgroundColor = `hsla(${hue}, ${saturation}%, 50%, 0.15)`;
+  // Create a brighter, more saturated text color for better contrast in dark mode
+  const textColor = `hsl(${hue}, ${saturation}%, 65%)`;
   
   return {
     backgroundColor,

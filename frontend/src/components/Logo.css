@@ -1,4 +1,4 @@
-/* Logo component styles - Cyber Minimal theme */
+/* Logo component styles - Modern gradient design */
 
 .logo-container {
   display: flex;
@@ -7,26 +7,79 @@
   user-select: none;
 }
 
-.logo-image {
-  display: block;
-  color: var(--color-cyan-accent);
-  transition: transform 0.2s ease, filter 0.2s ease;
+/* Icon box with solid blue background */
+.logo-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-color);
+  border-radius: 10px;
+  padding: 0.6rem;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.logo-icon-box::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transform: rotate(45deg);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
+}
+
+.logo-icon {
+  font-size: 1.5rem;
+  color: #ffffff !important;
+  z-index: 1;
+  position: relative;
 }
 
 /* Size variants */
-.logo-container.small .logo-image {
-  width: 28px;
-  height: 28px;
+.logo-container.small .logo-icon-box {
+  padding: 0.4rem;
+  border-radius: 8px;
 }
 
-.logo-container.medium .logo-image {
-  width: 40px;
-  height: 40px;
+.logo-container.small .logo-icon {
+  font-size: 1rem;
 }
 
-.logo-container.large .logo-image {
-  width: 60px;
-  height: 60px;
+.logo-container.medium .logo-icon-box {
+  padding: 0.6rem;
+  border-radius: 10px;
+}
+
+.logo-container.medium .logo-icon {
+  font-size: 1.5rem;
+}
+
+.logo-container.large .logo-icon-box {
+  padding: 0.8rem;
+  border-radius: 12px;
+}
+
+.logo-container.large .logo-icon {
+  font-size: 2rem;
 }
 
 /* Logo text */
@@ -40,15 +93,22 @@
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: var(--text-primary);
+  color: var(--text-header);
   font-family: 'Courier New', monospace;
 }
 
 .logo-subtitle {
   font-size: 0.75rem;
-  font-weight: 400;
-  color: var(--text-secondary);
+  font-weight: 500;
+  color: var(--text-header);
   letter-spacing: 0.02em;
+  opacity: 0.9;
+}
+
+/* Highlight "Ops" in banana yellow */
+.ops-highlight {
+  color: #fbbf24;
+  font-weight: 700;
 }
 
 /* Small size text adjustments */
@@ -70,9 +130,10 @@
 }
 
 /* Hover effect */
-.logo-container:hover .logo-image {
-  transform: scale(1.05);
-  filter: brightness(1.1);
+.logo-container:hover .logo-icon-box {
+  transform: scale(1.05) rotate(2deg);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5);
+  background: var(--color-info);
 }
 
 /* Animation for initial load */

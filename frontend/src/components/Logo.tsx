@@ -1,6 +1,8 @@
 // Logo component for IPAM by BananaOps
-// Displays the Cyber Minimal style logo with proper theming
+// Modern logo with network icon and gradient background
 
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faNetworkWired } from '@fortawesome/free-solid-svg-icons';
 import './Logo.css';
 
 interface LogoProps {
@@ -16,19 +18,19 @@ function Logo({
   showText = true,
   className = '' 
 }: LogoProps) {
-  const logoSrc = variant === 'full' ? '/logo.svg' : '/logo-horizontal.svg';
-  
   return (
     <div className={`logo-container ${size} ${className}`}>
-      <img 
-        src={logoSrc} 
-        alt="IPAM by BananaOps Logo" 
-        className="logo-image"
-      />
+      <div className="logo-icon-box">
+        <FontAwesomeIcon icon={faNetworkWired} className="logo-icon" />
+      </div>
       {showText && (
         <div className="logo-text">
-          <span className="logo-title">IPAM</span>
-          <span className="logo-subtitle">by BananaOps</span>
+          <span className="logo-title">
+            IPAM
+          </span>
+          <span className="logo-subtitle">
+            by Banana<span className="ops-highlight">Ops</span>
+          </span>
         </div>
       )}
     </div>
