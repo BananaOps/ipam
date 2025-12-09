@@ -175,24 +175,55 @@ function SubnetList({ filters: externalFilters, onFilterChange }: SubnetListProp
           />
         </div>
 
-        <div className="filter-group">
-          <label htmlFor="cloud-provider-filter">
+        <div className="filter-group filter-group-cloud">
+          <label>
             <FontAwesomeIcon icon={faFilter} />
             <span>Cloud Provider</span>
           </label>
-          <select
-            id="cloud-provider-filter"
-            value={filters.cloudProvider || ''}
-            onChange={(e) => handleCloudProviderFilterChange(e.target.value)}
-            className="filter-select"
-          >
-            <option value="">All Providers</option>
-            <option value={CloudProviderType.AWS}>AWS</option>
-            <option value={CloudProviderType.AZURE}>Azure</option>
-            <option value={CloudProviderType.GCP}>Google Cloud</option>
-            <option value={CloudProviderType.SCALEWAY}>Scaleway</option>
-            <option value={CloudProviderType.OVH}>OVH</option>
-          </select>
+          <div className="cloud-provider-filters">
+            <button
+              className={`cloud-filter-btn ${!filters.cloudProvider ? 'active' : ''}`}
+              onClick={() => handleCloudProviderFilterChange('')}
+              title="All Providers"
+            >
+              All
+            </button>
+            <button
+              className={`cloud-filter-btn ${filters.cloudProvider === CloudProviderType.AWS ? 'active' : ''}`}
+              onClick={() => handleCloudProviderFilterChange(CloudProviderType.AWS)}
+              title="AWS"
+            >
+              <CloudProviderIcon provider={CloudProviderType.AWS} size="lg" />
+            </button>
+            <button
+              className={`cloud-filter-btn ${filters.cloudProvider === CloudProviderType.AZURE ? 'active' : ''}`}
+              onClick={() => handleCloudProviderFilterChange(CloudProviderType.AZURE)}
+              title="Azure"
+            >
+              <CloudProviderIcon provider={CloudProviderType.AZURE} size="lg" />
+            </button>
+            <button
+              className={`cloud-filter-btn ${filters.cloudProvider === CloudProviderType.GCP ? 'active' : ''}`}
+              onClick={() => handleCloudProviderFilterChange(CloudProviderType.GCP)}
+              title="GCP"
+            >
+              <CloudProviderIcon provider={CloudProviderType.GCP} size="lg" />
+            </button>
+            <button
+              className={`cloud-filter-btn ${filters.cloudProvider === CloudProviderType.SCALEWAY ? 'active' : ''}`}
+              onClick={() => handleCloudProviderFilterChange(CloudProviderType.SCALEWAY)}
+              title="Scaleway"
+            >
+              <CloudProviderIcon provider={CloudProviderType.SCALEWAY} size="lg" />
+            </button>
+            <button
+              className={`cloud-filter-btn ${filters.cloudProvider === CloudProviderType.OVH ? 'active' : ''}`}
+              onClick={() => handleCloudProviderFilterChange(CloudProviderType.OVH)}
+              title="OVH"
+            >
+              <CloudProviderIcon provider={CloudProviderType.OVH} size="lg" />
+            </button>
+          </div>
         </div>
 
         {(filters.location || filters.cloudProvider || filters.searchQuery) && (
