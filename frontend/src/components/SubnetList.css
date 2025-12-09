@@ -224,32 +224,33 @@
 /* Column widths for better alignment */
 .subnet-table th:nth-child(1),
 .subnet-table td:nth-child(1) {
-  width: 18%;
+  width: 16%; /* CIDR */
 }
 
 .subnet-table th:nth-child(2),
 .subnet-table td:nth-child(2) {
-  width: 22%;
+  width: 18%; /* Name */
 }
 
 .subnet-table th:nth-child(3),
 .subnet-table td:nth-child(3) {
-  width: 15%;
+  width: 14%; /* Location */
 }
 
 .subnet-table th:nth-child(4),
 .subnet-table td:nth-child(4) {
-  width: 12%;
+  width: 10%; /* Type */
 }
 
 .subnet-table th:nth-child(5),
 .subnet-table td:nth-child(5) {
-  width: 20%;
+  width: 26%; /* Cloud Info - plus large */
+  min-width: 220px;
 }
 
 .subnet-table th:nth-child(6),
 .subnet-table td:nth-child(6) {
-  width: 13%;
+  width: 16%; /* Utilization */
 }
 
 .subnet-table tbody tr {
@@ -322,26 +323,53 @@
 }
 
 /* Cloud Info Styles */
-.cloud-info {
+.cloud-info-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 200px;
+}
+
+.cloud-info-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
 }
 
-.cloud-provider-icon {
-  font-size: 1.25rem;
-  color: var(--accent-color);
+.cloud-info-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
-.cloud-region {
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.cloud-account {
+.cloud-label {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  font-weight: 600;
+  text-align: center;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.cloud-label:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+.cloud-region-label {
+  font-family: inherit;
+}
+
+.cloud-account-label {
   font-family: 'Courier New', monospace;
+  font-size: 0.7rem;
 }
 
 .no-cloud-info {
@@ -418,10 +446,17 @@
     font-size: 0.75rem;
   }
   
-  .cloud-info {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
+  .cloud-info-container {
+    min-width: 180px;
+  }
+  
+  .cloud-label {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.6rem;
+  }
+  
+  .cloud-account-label {
+    font-size: 0.65rem;
   }
   
   .utilization-display {

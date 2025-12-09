@@ -15,6 +15,31 @@ interface SubnetListProps {
   onFilterChange?: (filters: SubnetFilters) => void;
 }
 
+/**
+ * Generate a consistent color for a given text string
+ * Same text will always produce the same color
+ */
+function getColorForText(text: string): { backgroundColor: string; color: string } {
+  // Simple hash function to convert string to number
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = text.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  
+  // Convert hash to HSL color (using hue only, keeping saturation and lightness fixed)
+  const hue = Math.abs(hash % 360);
+  const saturation = 65; // Medium saturation for pleasant colors
+  const lightness = 85; // Light background
+  
+  const backgroundColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  const textColor = `hsl(${hue}, ${saturation + 10}%, 35%)`; // Darker text for contrast
+  
+  return {
+    backgroundColor,
+    color: textColor,
+  };
+}
+
 function SubnetList({ filters: externalFilters, onFilterChange }: SubnetListProps) {
   const [subnets, setSubnets] = useState<Subnet[]>([]);
   const [loading, setLoading] = useState(true);
@@ -195,13 +220,28 @@ function SubnetList({ filters: externalFilters, onFilterChange }: SubnetListProp
                   </td>
                   <td className="subnet-cloud-info">
                     {subnet.cloudInfo && subnet.cloudInfo.provider ? (
-                      <div className="cloud-info">
-                        <CloudProviderIcon
-                          provider={subnet.cloudInfo.provider}
-                          size="lg"
-                        />
-                        <span className="cloud-region">{subnet.cloudInfo.region}</span>
-                        <span className="cloud-account">{subnet.cloudInfo.accountId}</span>
+                      <div className="cloud-info-container">
+                        <div className="cloud-info-row">
+                          <CloudProviderIcon
+                            provider={subnet.cloudInfo.provider}
+                            size="lg"
+                            title={subnet.cloudInfo.provider.toUpperCase()}
+                          />
+                        </div>
+                        <div className="cloud-info-labels">
+                          <span 
+                            className="cloud-label cloud-region-label"
+                            style={getColorForText(subnet.cloudInfo.region)}
+                          >
+                            {subnet.cloudInfo.region}
+                          </span>
+                          <span 
+                            className="cloud-label cloud-account-label"
+                            style={getColorForText(subnet.cloudInfo.accountId)}
+                          >
+                            {subnet.cloudInfo.accountId}
+                          </span>
+                        </div>
                       </div>
                     ) : (
                       <span className="no-cloud-info">—</span>
