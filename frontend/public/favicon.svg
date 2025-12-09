@@ -1,27 +1,35 @@
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Favicon version of IPAM logo -->
+  <!-- Favicon - IPAM by BananaOps -->
+  <!-- Matches the FontAwesome network-wired icon in the logo -->
   
-  <!-- Hexagon frame -->
-  <path d="M16 3 L26 9 L26 20 L16 26 L6 20 L6 9 Z" 
-        stroke="#0EA5E9" 
-        stroke-width="2" 
-        fill="none"
-        stroke-linejoin="miter"/>
+  <!-- Rounded square background -->
+  <rect x="2" y="2" width="28" height="28" rx="6" fill="#0EA5E9"/>
   
-  <!-- Network nodes -->
-  <circle cx="16" cy="9" r="1.5" fill="#0EA5E9"/>
-  <circle cx="11" cy="13" r="1.5" fill="#0EA5E9"/>
-  <circle cx="21" cy="13" r="1.5" fill="#0EA5E9"/>
-  <circle cx="13" cy="19" r="1.5" fill="#0EA5E9"/>
-  <circle cx="19" cy="19" r="1.5" fill="#0EA5E9"/>
+  <!-- FontAwesome network-wired icon recreation -->
+  <!-- Top server/node -->
+  <rect x="12" y="7" width="8" height="5" rx="1" fill="white"/>
+  <rect x="13" y="8.5" width="2" height="0.8" rx="0.4" fill="#0EA5E9"/>
+  <rect x="17" y="8.5" width="2" height="0.8" rx="0.4" fill="#0EA5E9"/>
   
-  <!-- Central hub -->
-  <circle cx="16" cy="16" r="2.5" fill="none" stroke="#0EA5E9" stroke-width="1.5"/>
+  <!-- Vertical line from top -->
+  <rect x="15.25" y="12" width="1.5" height="4" fill="white"/>
   
-  <!-- Connection lines -->
-  <line x1="16" y1="9" x2="16" y2="13.5" stroke="#0EA5E9" stroke-width="1" opacity="0.5"/>
-  <line x1="11" y1="13" x2="14" y2="15" stroke="#0EA5E9" stroke-width="1" opacity="0.5"/>
-  <line x1="21" y1="13" x2="18" y2="15" stroke="#0EA5E9" stroke-width="1" opacity="0.5"/>
-  <line x1="13" y1="19" x2="14.5" y2="17.5" stroke="#0EA5E9" stroke-width="1" opacity="0.5"/>
-  <line x1="19" y1="19" x2="17.5" y2="17.5" stroke="#0EA5E9" stroke-width="1" opacity="0.5"/>
+  <!-- Middle horizontal line/backbone -->
+  <rect x="7" y="15.25" width="18" height="1.5" fill="white"/>
+  
+  <!-- Left vertical line -->
+  <rect x="9.25" y="16.75" width="1.5" height="3.25" fill="white"/>
+  
+  <!-- Right vertical line -->
+  <rect x="21.25" y="16.75" width="1.5" height="3.25" fill="white"/>
+  
+  <!-- Left bottom server/node -->
+  <rect x="6" y="20" width="8" height="5" rx="1" fill="white"/>
+  <rect x="7" y="21.5" width="2" height="0.8" rx="0.4" fill="#0EA5E9"/>
+  <rect x="11" y="21.5" width="2" height="0.8" rx="0.4" fill="#0EA5E9"/>
+  
+  <!-- Right bottom server/node -->
+  <rect x="18" y="20" width="8" height="5" rx="1" fill="white"/>
+  <rect x="19" y="21.5" width="2" height="0.8" rx="0.4" fill="#0EA5E9"/>
+  <rect x="23" y="21.5" width="2" height="0.8" rx="0.4" fill="#0EA5E9"/>
 </svg>
