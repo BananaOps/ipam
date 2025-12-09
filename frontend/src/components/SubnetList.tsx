@@ -49,12 +49,39 @@ function SubnetList({ filters: externalFilters, onFilterChange }: SubnetListProp
   const [error, setError] = useState<APIError | Error | null>(null);
   const [filters, setFilters] = useState<SubnetFilters>(externalFilters || {});
   const [searchQuery, setSearchQuery] = useState('');
+  const [locationQuery, setLocationQuery] = useState('');
   const { showError: showToastError, showSuccess } = useToast();
 
   // Load subnets from API
   useEffect(() => {
     loadSubnets();
   }, [filters]);
+
+  // Debounce search query
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery !== (filters.searchQuery || '')) {
+        const newFilters = { ...filters, searchQuery: searchQuery || undefined };
+        setFilters(newFilters);
+        onFilterChange?.(newFilters);
+      }
+    }, 300); // Wait 300ms after user stops typing
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  // Debounce location filter
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (locationQuery !== (filters.location || '')) {
+        const newFilters = { ...filters, location: locationQuery || undefined };
+        setFilters(newFilters);
+        onFilterChange?.(newFilters);
+      }
+    }, 300); // Wait 300ms after user stops typing
+
+    return () => clearTimeout(timeoutId);
+  }, [locationQuery]);
 
   const loadSubnets = async () => {
     try {
@@ -71,9 +98,7 @@ function SubnetList({ filters: externalFilters, onFilterChange }: SubnetListProp
   };
 
   const handleLocationFilterChange = (location: string) => {
-    const newFilters = { ...filters, location: location || undefined };
-    setFilters(newFilters);
-    onFilterChange?.(newFilters);
+    setLocationQuery(location);
   };
 
   const handleCloudProviderFilterChange = (provider: string) => {
@@ -87,14 +112,12 @@ function SubnetList({ filters: externalFilters, onFilterChange }: SubnetListProp
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
-    const newFilters = { ...filters, searchQuery: query || undefined };
-    setFilters(newFilters);
-    onFilterChange?.(newFilters);
   };
 
   const clearFilters = () => {
     setFilters({});
     setSearchQuery('');
+    setLocationQuery('');
     onFilterChange?.({});
   };
 
@@ -146,7 +169,7 @@ function SubnetList({ filters: externalFilters, onFilterChange }: SubnetListProp
             id="location-filter"
             type="text"
             placeholder="Filter by location..."
-            value={filters.location || ''}
+            value={locationQuery}
             onChange={(e) => handleLocationFilterChange(e.target.value)}
             className="filter-input"
           />

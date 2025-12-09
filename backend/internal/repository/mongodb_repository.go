@@ -149,7 +149,7 @@ func (r *MongoDBRepository) FindAll(ctx context.Context, filters *SubnetFilters)
 	// Apply filters
 	if filters != nil {
 		if filters.LocationFilter != "" {
-			filter["location"] = filters.LocationFilter
+			filter["location"] = bson.M{"$regex": filters.LocationFilter, "$options": "i"}
 		}
 		if filters.CloudProviderFilter != "" {
 			filter["cloudInfo.provider"] = filters.CloudProviderFilter

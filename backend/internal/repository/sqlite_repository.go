@@ -218,8 +218,9 @@ func (r *SQLiteRepository) FindAll(ctx context.Context, filters *SubnetFilters) 
 	// Apply filters
 	if filters != nil {
 		if filters.LocationFilter != "" {
-			query += " AND location = ?"
-			args = append(args, filters.LocationFilter)
+			query += " AND location LIKE ?"
+			locationPattern := "%" + filters.LocationFilter + "%"
+			args = append(args, locationPattern)
 		}
 		if filters.CloudProviderFilter != "" {
 			query += " AND cloud_provider = ?"

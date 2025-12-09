@@ -226,7 +226,7 @@ class APIClient {
         params.append('location', filters.location);
       }
       if (filters.cloudProvider) {
-        params.append('cloudProvider', filters.cloudProvider);
+        params.append('cloud_provider', filters.cloudProvider);
       }
       if (filters.searchQuery) {
         params.append('search', filters.searchQuery);
