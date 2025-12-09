@@ -5,7 +5,8 @@ import App from './App';
 describe('App', () => {
   it('renders without crashing', () => {
     render(<App />);
-    expect(screen.getByText('IPAM by BananaOps')).toBeInTheDocument();
+    expect(screen.getByText('IPAM')).toBeInTheDocument();
+    expect(screen.getByText('by BananaOps')).toBeInTheDocument();
   });
 
   it('renders navigation links', () => {

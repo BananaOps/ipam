@@ -20,13 +20,15 @@
   max-width: 500px;
   padding: 1rem 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: center;
   gap: 1rem;
   animation: slideInRight 0.3s ease-out;
   background-color: var(--bg-primary);
   border-left: 4px solid;
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(10px);
 }
 
 @keyframes slideInRight {

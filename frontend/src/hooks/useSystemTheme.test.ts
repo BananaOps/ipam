@@ -72,7 +72,7 @@ describe('useSystemTheme', () => {
     // Simulate system theme change to dark
     if (changeHandler) {
       act(() => {
-        changeHandler({ matches: true } as MediaQueryListEvent);
+        changeHandler!({ matches: true } as MediaQueryListEvent);
       });
     }
 

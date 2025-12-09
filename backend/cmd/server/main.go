@@ -3,10 +3,14 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
+	"github.com/bananaops/ipam-bananaops/internal/cloudprovider"
 	"github.com/bananaops/ipam-bananaops/internal/config"
+	"github.com/bananaops/ipam-bananaops/internal/gateway"
 	"github.com/bananaops/ipam-bananaops/internal/repository"
+	"github.com/bananaops/ipam-bananaops/internal/service"
 )
 
 func main() {
@@ -30,12 +34,29 @@ func main() {
 
 	log.Printf("Database initialized successfully (%s)", cfg.Database.Type)
 
-	// TODO: Initialize go-ipam
-	// TODO: Initialize service layer
-	// TODO: Initialize REST gateway
-	// TODO: Start HTTP server
+	// Initialize IP service
+	ipService := service.NewGoIPAMService()
+	log.Println("IP service initialized")
 
-	log.Println("Server ready (database layer implemented)")
+	// Initialize cloud provider manager
+	cloudManager := cloudprovider.NewCloudProviderManager()
+	log.Println("Cloud provider manager initialized")
+
+	// Initialize service layer
+	serviceLayer := service.NewServiceLayer(repo, ipService, cloudManager)
+	log.Println("Service layer initialized")
+
+	// Initialize REST gateway
+	gateway := gateway.NewRESTGateway(serviceLayer)
+	log.Println("REST gateway initialized")
+
+	// Start HTTP server
+	serverAddr := fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port)
+	log.Printf("Starting HTTP server on %s", serverAddr)
+
+	if err := http.ListenAndServe(serverAddr, gateway.Handler()); err != nil {
+		log.Fatalf("Failed to start HTTP server: %v", err)
+	}
 }
 
 // loadConfiguration loads configuration from file or environment

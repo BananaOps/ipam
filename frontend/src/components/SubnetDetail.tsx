@@ -13,7 +13,26 @@ interface SubnetDetailProps {
  */
 function SubnetDetail({ subnet }: SubnetDetailProps) {
   const { details, utilization } = subnet;
-  const isHighUtilization = utilization.utilizationPercent >= HIGH_UTILIZATION_THRESHOLD;
+  
+  // Handle missing data gracefully
+  if (!details || !utilization) {
+    return (
+      <div className="subnet-detail">
+        <div className="subnet-detail-header">
+          <h3 className="subnet-name">{subnet.name}</h3>
+          {subnet.description && (
+            <p className="subnet-description">{subnet.description}</p>
+          )}
+        </div>
+        <div className="error-message">
+          <p>Subnet details are not available. Please try refreshing the page.</p>
+        </div>
+      </div>
+    );
+  }
+  
+  const isHighUtilization = utilization.utilizationPercent !== undefined && 
+    utilization.utilizationPercent >= HIGH_UTILIZATION_THRESHOLD;
 
   return (
     <div className="subnet-detail">
@@ -97,7 +116,9 @@ function SubnetDetail({ subnet }: SubnetDetailProps) {
           </div>
           <div className="property-item">
             <span className="property-label">Hosts/Net:</span>
-            <span className="property-value">{details.hostsPerNet.toLocaleString()}</span>
+            <span className="property-value">
+              {details.hostsPerNet !== undefined ? details.hostsPerNet.toLocaleString() : 'N/A'}
+            </span>
           </div>
           <div className="property-item">
             <span className="property-label">Classification:</span>
@@ -115,44 +136,58 @@ function SubnetDetail({ subnet }: SubnetDetailProps) {
           <div className="utilization-stats">
             <div className="stat-item">
               <span className="stat-label">Total IPs:</span>
-              <span className="stat-value">{utilization.totalIps.toLocaleString()}</span>
+              <span className="stat-value">
+                {utilization.totalIps !== undefined ? utilization.totalIps.toLocaleString() : 'N/A'}
+              </span>
             </div>
             <div className="stat-item">
               <span className="stat-label">Allocated:</span>
-              <span className="stat-value">{utilization.allocatedIps.toLocaleString()}</span>
+              <span className="stat-value">
+                {utilization.allocatedIps !== undefined ? utilization.allocatedIps.toLocaleString() : 'N/A'}
+              </span>
             </div>
             <div className="stat-item">
               <span className="stat-label">Available:</span>
               <span className="stat-value">
-                {(utilization.totalIps - utilization.allocatedIps).toLocaleString()}
+                {(utilization.totalIps !== undefined && utilization.allocatedIps !== undefined) 
+                  ? (utilization.totalIps - utilization.allocatedIps).toLocaleString() 
+                  : 'N/A'}
               </span>
             </div>
           </div>
           
           {/* Utilization Percentage Display */}
-          <div className={`utilization-percentage ${isHighUtilization ? 'high-utilization' : ''}`}>
-            <span className="percentage-value">
-              {utilization.utilizationPercent.toFixed(1)}%
-            </span>
-            {isHighUtilization && (
-              <span className="high-utilization-indicator" title="High utilization warning">
-                ⚠
-              </span>
-            )}
-          </div>
+          {utilization.utilizationPercent !== undefined ? (
+            <>
+              <div className={`utilization-percentage ${isHighUtilization ? 'high-utilization' : ''}`}>
+                <span className="percentage-value">
+                  {utilization.utilizationPercent.toFixed(1)}%
+                </span>
+                {isHighUtilization && (
+                  <span className="high-utilization-indicator" title="High utilization warning">
+                    ⚠
+                  </span>
+                )}
+              </div>
 
-          {/* Progress Bar */}
-          <div className="utilization-progress-container">
-            <div 
-              className={`utilization-progress-bar ${isHighUtilization ? 'high' : ''}`}
-              style={{ width: `${Math.min(utilization.utilizationPercent, 100)}%` }}
-              role="progressbar"
-              aria-valuenow={utilization.utilizationPercent}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label={`IP utilization: ${utilization.utilizationPercent.toFixed(1)}%`}
-            />
-          </div>
+              {/* Progress Bar */}
+              <div className="utilization-progress-container">
+                <div 
+                  className={`utilization-progress-bar ${isHighUtilization ? 'high' : ''}`}
+                  style={{ width: `${Math.min(utilization.utilizationPercent, 100)}%` }}
+                  role="progressbar"
+                  aria-valuenow={utilization.utilizationPercent}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`IP utilization: ${utilization.utilizationPercent.toFixed(1)}%`}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="utilization-percentage">
+              <span className="percentage-value">N/A</span>
+            </div>
+          )}
           
           {isHighUtilization && (
             <div className="high-utilization-warning">

@@ -65,9 +65,26 @@
 /* Properties Section */
 .subnet-properties-section {
   padding: 1.5rem;
-  background-color: var(--bg-secondary);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   border-radius: 8px;
   border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px var(--shadow-color);
+  position: relative;
+}
+
+.subnet-properties-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    var(--accent-color) 50%, 
+    transparent 100%);
+  opacity: 0.5;
+  border-radius: 8px 8px 0 0;
 }
 
 .section-title {
@@ -93,12 +110,31 @@
   background-color: var(--bg-primary);
   border-radius: 6px;
   border: 1px solid var(--border-color);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.property-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background-color: var(--accent-color);
+  transform: scaleY(0);
+  transition: transform 0.2s ease;
 }
 
 .property-item:hover {
   border-color: var(--accent-color);
-  box-shadow: 0 2px 4px var(--shadow-color);
+  box-shadow: 0 4px 12px var(--shadow-color);
+  transform: translateY(-2px);
+}
+
+.property-item:hover::before {
+  transform: scaleY(1);
 }
 
 .property-label {
@@ -140,9 +176,26 @@
 /* Utilization Section */
 .subnet-utilization-section {
   padding: 1.5rem;
-  background-color: var(--bg-secondary);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   border-radius: 8px;
   border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px var(--shadow-color);
+  position: relative;
+}
+
+.subnet-utilization-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    var(--color-success) 50%, 
+    transparent 100%);
+  opacity: 0.5;
+  border-radius: 8px 8px 0 0;
 }
 
 .utilization-info {

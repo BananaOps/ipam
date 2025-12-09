@@ -66,9 +66,26 @@
   gap: 1rem;
   margin-bottom: 2rem;
   padding: 1.5rem;
-  background-color: var(--bg-secondary);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   border-radius: 8px;
   border: 1px solid var(--border-color);
+  box-shadow: 0 2px 4px var(--shadow-color);
+  position: relative;
+  overflow: hidden;
+}
+
+.subnet-list-filters::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    var(--accent-color) 50%, 
+    transparent 100%);
+  opacity: 0.5;
 }
 
 .filter-group {
@@ -199,11 +216,29 @@
 
 .subnet-table tbody tr {
   border-bottom: 1px solid var(--border-color);
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.subnet-table tbody tr::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: var(--accent-color);
+  transform: scaleY(0);
+  transition: transform 0.2s ease;
 }
 
 .subnet-table tbody tr:hover {
   background-color: var(--bg-secondary);
+  box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.subnet-table tbody tr:hover::before {
+  transform: scaleY(1);
 }
 
 .subnet-table tbody tr:last-child {
@@ -326,9 +361,18 @@
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+  .subnet-table th,
+  .subnet-table td {
+    padding: 0.75rem;
+    font-size: 0.8rem;
+  }
+}
+
 @media (max-width: 768px) {
   .subnet-list-filters {
     flex-direction: column;
+    padding: 1rem;
   }
 
   .filter-group {
@@ -337,9 +381,61 @@
 
   .subnet-table-container {
     overflow-x: scroll;
+    -webkit-overflow-scrolling: touch;
   }
 
   .subnet-table {
     min-width: 800px;
+  }
+  
+  .subnet-table th,
+  .subnet-table td {
+    padding: 0.5rem;
+    font-size: 0.75rem;
+  }
+  
+  .cloud-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  
+  .utilization-display {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .utilization-bar {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .subnet-list-filters {
+    padding: 0.75rem;
+  }
+  
+  .filter-group label {
+    font-size: 0.8rem;
+  }
+  
+  .search-input,
+  .filter-input,
+  .filter-select {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.6rem;
+  }
+  
+  .subnet-list-empty {
+    padding: 2rem 1rem;
+  }
+  
+  .empty-icon {
+    font-size: 3rem;
+  }
+  
+  .subnet-list-empty h3 {
+    font-size: 1.25rem;
   }
 }

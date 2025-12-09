@@ -232,7 +232,7 @@
   - Integrate logo into application header
   - _Requirements: 7.3, 7.5_
 
-- [ ] 20. Apply branding and styling
+- [x] 20. Apply branding and styling
   - Implement Cyber Minimal design system
   - Apply color palette consistently across components
   - Style all UI components with modern, tech-focused aesthetic
@@ -257,7 +257,7 @@
 - [ ] 22. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 23. Create Taskfile for development workflow
+- [x] 23. Create Taskfile for development workflow
   - Create Taskfile.yml at project root
   - Add development tasks (dev, dev:backend, dev:frontend)
   - Add build tasks (build, build:backend, build:frontend)

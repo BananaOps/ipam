@@ -60,10 +60,26 @@
 
 /* Form Styles */
 .subnet-form {
-  background-color: var(--bg-primary);
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 2rem;
+  box-shadow: 0 4px 12px var(--shadow-color);
+  position: relative;
+}
+
+.subnet-form::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    var(--accent-color) 0%, 
+    var(--color-info) 50%, 
+    var(--accent-color) 100%);
+  border-radius: 8px 8px 0 0;
 }
 
 .form-group {
@@ -102,7 +118,8 @@
 .form-select:focus {
   outline: none;
   border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1), 0 1px 3px var(--shadow-color);
+  transform: translateY(-1px);
 }
 
 .form-input.error,
@@ -183,10 +200,12 @@
 }
 
 .radio-label:has(input:checked) {
-  background-color: rgba(14, 165, 233, 0.1);
+  background-color: rgba(14, 165, 233, 0.15);
   border-color: var(--accent-color);
   color: var(--accent-color);
   font-weight: 600;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+  transform: scale(1.02);
 }
 
 /* Cloud Info Section */

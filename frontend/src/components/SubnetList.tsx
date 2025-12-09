@@ -189,12 +189,12 @@ function SubnetList({ filters: externalFilters, onFilterChange }: SubnetListProp
                   <td className="subnet-name">{subnet.name}</td>
                   <td className="subnet-location">{subnet.location}</td>
                   <td className="subnet-type">
-                    <span className={`location-type-badge ${subnet.locationType.toLowerCase()}`}>
-                      {subnet.locationType}
+                    <span className={`location-type-badge ${subnet.locationType ? subnet.locationType.toLowerCase() : 'unknown'}`}>
+                      {subnet.locationType || 'Unknown'}
                     </span>
                   </td>
                   <td className="subnet-cloud-info">
-                    {subnet.cloudInfo ? (
+                    {subnet.cloudInfo && subnet.cloudInfo.provider ? (
                       <div className="cloud-info">
                         <CloudProviderIcon
                           provider={subnet.cloudInfo.provider}
@@ -208,19 +208,23 @@ function SubnetList({ filters: externalFilters, onFilterChange }: SubnetListProp
                     )}
                   </td>
                   <td className="subnet-utilization">
-                    <div className="utilization-display">
-                      <div className="utilization-bar">
-                        <div
-                          className={`utilization-fill ${
-                            subnet.utilization.utilizationPercent >= 80 ? 'high' : ''
-                          }`}
-                          style={{ width: `${subnet.utilization.utilizationPercent}%` }}
-                        ></div>
+                    {subnet.utilization && subnet.utilization.utilizationPercent !== undefined ? (
+                      <div className="utilization-display">
+                        <div className="utilization-bar">
+                          <div
+                            className={`utilization-fill ${
+                              subnet.utilization.utilizationPercent >= 80 ? 'high' : ''
+                            }`}
+                            style={{ width: `${subnet.utilization.utilizationPercent}%` }}
+                          ></div>
+                        </div>
+                        <span className="utilization-percent">
+                          {subnet.utilization.utilizationPercent.toFixed(1)}%
+                        </span>
                       </div>
-                      <span className="utilization-percent">
-                        {subnet.utilization.utilizationPercent.toFixed(1)}%
-                      </span>
-                    </div>
+                    ) : (
+                      <span className="no-utilization">N/A</span>
+                    )}
                   </td>
                 </tr>
               ))}

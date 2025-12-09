@@ -166,7 +166,7 @@ func SubnetToJSON(subnet *pb.Subnet) *SubnetJSON {
 		UpdatedAt:    subnet.UpdatedAt,
 	}
 
-	if subnet.CloudInfo != nil {
+	if subnet.CloudInfo != nil && subnet.CloudInfo.Provider != "" {
 		result.CloudInfo = &CloudInfoJSON{
 			Provider:  subnet.CloudInfo.Provider,
 			Region:    subnet.CloudInfo.Region,

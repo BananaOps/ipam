@@ -3,6 +3,7 @@ package gateway
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	pb "github.com/bananaops/ipam-bananaops/proto"
@@ -11,13 +12,18 @@ import (
 
 // handleCreateSubnet handles POST /api/v1/subnets
 func (g *RESTGateway) handleCreateSubnet(w http.ResponseWriter, r *http.Request) {
+	log.Println("[CreateSubnet] Received request")
+
 	// Read request body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		log.Printf("[CreateSubnet] Failed to read body: %v", err)
 		g.writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "Failed to read request body")
 		return
 	}
 	defer r.Body.Close()
+
+	log.Printf("[CreateSubnet] Request body: %s", string(body))
 
 	// Validate request body is not empty
 	if len(body) == 0 {

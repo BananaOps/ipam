@@ -11,11 +11,27 @@
 .error-boundary-content {
   max-width: 600px;
   width: 100%;
-  background-color: var(--bg-primary);
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
   border-radius: 12px;
   padding: 3rem 2rem;
-  box-shadow: 0 4px 12px var(--shadow-color);
+  box-shadow: 0 8px 24px var(--shadow-color);
   text-align: center;
+  border: 1px solid var(--border-color);
+  position: relative;
+  overflow: hidden;
+}
+
+.error-boundary-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    var(--color-error) 0%, 
+    var(--color-warning) 50%, 
+    var(--color-error) 100%);
 }
 
 .error-boundary-icon {

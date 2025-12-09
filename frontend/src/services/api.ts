@@ -22,6 +22,9 @@ class APIClient {
   private retryDelay: number = 1000; // milliseconds
 
   constructor(baseURL: string = API_BASE_URL) {
+    // Log the base URL for debugging
+    console.log('[APIClient] Initializing with baseURL:', baseURL);
+    
     // Create axios instance with default configuration
     this.axiosInstance = axios.create({
       baseURL,
@@ -149,7 +152,24 @@ class APIClient {
    */
   async createSubnet(data: CreateSubnetRequest): Promise<Subnet> {
     return this.retryRequest(async () => {
-      const response = await this.axiosInstance.post<Subnet>('/subnets', data);
+      // Transform camelCase to snake_case for backend API
+      const requestData = {
+        cidr: data.cidr,
+        name: data.name,
+        description: data.description,
+        location: data.location,
+        location_type: data.locationType,
+        cloud_info: data.cloudInfo ? {
+          provider: data.cloudInfo.provider,
+          region: data.cloudInfo.region,
+          account_id: data.cloudInfo.accountId,
+        } : undefined,
+      };
+      
+      console.log('[APIClient] Creating subnet with data:', requestData);
+      console.log('[APIClient] Request URL:', this.axiosInstance.defaults.baseURL + '/subnets');
+      
+      const response = await this.axiosInstance.post<Subnet>('/subnets', requestData);
       return response.data;
     });
   }
