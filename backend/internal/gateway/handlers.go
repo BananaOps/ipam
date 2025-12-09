@@ -48,18 +48,24 @@ func (g *RESTGateway) handleCreateSubnet(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	log.Printf("[CreateSubnet] Protobuf request: %+v", req)
+
 	// Call service layer
 	resp, err := g.serviceLayer.CreateSubnet(r.Context(), req)
 	if err != nil {
+		log.Printf("[CreateSubnet] Service layer error: %v", err)
 		g.writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
 		return
 	}
 
 	// Check for service-level errors
 	if resp.Error != nil {
+		log.Printf("[CreateSubnet] Service returned error: %+v", resp.Error)
 		g.writeProtobufError(w, resp.Error)
 		return
 	}
+
+	log.Printf("[CreateSubnet] Successfully created subnet: %s", resp.Subnet.Id)
 
 	// Convert response to JSON and send
 	jsonSubnet := SubnetToJSON(resp.Subnet)

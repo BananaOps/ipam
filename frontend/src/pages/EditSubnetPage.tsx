@@ -80,7 +80,14 @@ function EditSubnetPage() {
       const newData = { ...prev, locationType };
       // Clear cloud info if not cloud type
       if (locationType !== LocationType.CLOUD) {
-        delete newData.cloudInfo;
+        newData.cloudInfo = undefined;
+      } else if (!newData.cloudInfo) {
+        // Initialize cloud info if switching to CLOUD and it doesn't exist
+        newData.cloudInfo = {
+          provider: CloudProviderType.AWS,
+          region: '',
+          accountId: '',
+        };
       }
       return newData;
     });

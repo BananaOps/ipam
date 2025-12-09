@@ -9,7 +9,46 @@ import type {
   SubnetListResponse,
   APIError,
 } from '../types';
+import { LocationType, CloudProviderType } from '../types';
 import { API_BASE_URL } from '../config/constants';
+
+/**
+ * Transform API response from snake_case to camelCase
+ */
+function transformSubnetFromAPI(apiSubnet: any): Subnet {
+  return {
+    id: apiSubnet.id,
+    cidr: apiSubnet.cidr,
+    name: apiSubnet.name,
+    description: apiSubnet.description,
+    location: apiSubnet.location,
+    locationType: apiSubnet.location_type as LocationType,
+    cloudInfo: apiSubnet.cloud_info ? {
+      provider: apiSubnet.cloud_info.provider as CloudProviderType,
+      region: apiSubnet.cloud_info.region,
+      accountId: apiSubnet.cloud_info.account_id,
+    } : undefined,
+    details: {
+      address: apiSubnet.details.address,
+      netmask: apiSubnet.details.netmask,
+      wildcard: apiSubnet.details.wildcard,
+      network: apiSubnet.details.network,
+      type: apiSubnet.details.type,
+      broadcast: apiSubnet.details.broadcast,
+      hostMin: apiSubnet.details.host_min,
+      hostMax: apiSubnet.details.host_max,
+      hostsPerNet: apiSubnet.details.hosts_per_net,
+      isPublic: apiSubnet.details.is_public,
+    },
+    utilization: {
+      totalIps: apiSubnet.utilization.total_ips,
+      allocatedIps: apiSubnet.utilization.allocated_ips,
+      utilizationPercent: apiSubnet.utilization.utilization_percent,
+    },
+    createdAt: apiSubnet.created_at,
+    updatedAt: apiSubnet.updated_at,
+  };
+}
 
 /**
  * APIClient class for communicating with the IPAM backend REST API
@@ -169,8 +208,8 @@ class APIClient {
       console.log('[APIClient] Creating subnet with data:', requestData);
       console.log('[APIClient] Request URL:', this.axiosInstance.defaults.baseURL + '/subnets');
       
-      const response = await this.axiosInstance.post<Subnet>('/subnets', requestData);
-      return response.data;
+      const response = await this.axiosInstance.post<any>('/subnets', requestData);
+      return transformSubnetFromAPI(response.data);
     });
   }
 
@@ -193,10 +232,15 @@ class APIClient {
         params.append('search', filters.searchQuery);
       }
 
-      const response = await this.axiosInstance.get<SubnetListResponse>('/subnets', {
+      const response = await this.axiosInstance.get<any>('/subnets', {
         params,
       });
-      return response.data;
+      
+      // Transform API response from snake_case to camelCase
+      return {
+        subnets: response.data.subnets.map(transformSubnetFromAPI),
+        totalCount: response.data.total_count,
+      };
     });
   }
 
@@ -207,8 +251,8 @@ class APIClient {
    */
   async getSubnet(id: string): Promise<Subnet> {
     return this.retryRequest(async () => {
-      const response = await this.axiosInstance.get<Subnet>(`/subnets/${id}`);
-      return response.data;
+      const response = await this.axiosInstance.get<any>(`/subnets/${id}`);
+      return transformSubnetFromAPI(response.data);
     });
   }
 
@@ -220,8 +264,24 @@ class APIClient {
    */
   async updateSubnet(id: string, data: UpdateSubnetRequest): Promise<Subnet> {
     return this.retryRequest(async () => {
-      const response = await this.axiosInstance.put<Subnet>(`/subnets/${id}`, data);
-      return response.data;
+      // Transform camelCase to snake_case for backend API
+      const requestData = {
+        cidr: data.cidr,
+        name: data.name,
+        description: data.description,
+        location: data.location,
+        location_type: data.locationType,
+        cloud_info: data.cloudInfo ? {
+          provider: data.cloudInfo.provider,
+          region: data.cloudInfo.region,
+          account_id: data.cloudInfo.accountId,
+        } : undefined,
+      };
+      
+      console.log('[APIClient] Updating subnet with data:', requestData);
+      
+      const response = await this.axiosInstance.put<any>(`/subnets/${id}`, requestData);
+      return transformSubnetFromAPI(response.data);
     });
   }
 

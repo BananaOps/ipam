@@ -54,29 +54,42 @@ function SubnetDetail({ subnet }: SubnetDetailProps) {
           <span className="info-label">Location:</span>
           <span className="info-value">{subnet.location} ({subnet.locationType})</span>
         </div>
-        {subnet.cloudInfo && (
-          <>
-            <div className="info-row">
-              <span className="info-label">Cloud Provider:</span>
-              <span className="info-value cloud-provider-display">
-                <CloudProviderIcon 
-                  provider={subnet.cloudInfo.provider} 
-                  size="lg"
-                />
-                <span className="provider-name">{subnet.cloudInfo.provider.toUpperCase()}</span>
+      </div>
+
+      {/* Cloud Provider Section - Only shown for CLOUD location type */}
+      {subnet.locationType === 'CLOUD' && (
+        <div className="cloud-provider-section">
+          <h4 className="section-title">Cloud Provider Information</h4>
+          {subnet.cloudInfo && subnet.cloudInfo.provider ? (
+            <div className="cloud-info-grid">
+              <div className="cloud-info-item">
+                <span className="info-label">Provider:</span>
+                <span className="info-value cloud-provider-display">
+                  <CloudProviderIcon 
+                    provider={subnet.cloudInfo.provider} 
+                    size="lg"
+                  />
+                  <span className="provider-name">{subnet.cloudInfo.provider.toUpperCase()}</span>
+                </span>
+              </div>
+              <div className="cloud-info-item">
+                <span className="info-label">Region:</span>
+                <span className="info-value">{subnet.cloudInfo.region}</span>
+              </div>
+              <div className="cloud-info-item">
+                <span className="info-label">Account ID:</span>
+                <span className="info-value">{subnet.cloudInfo.accountId}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="cloud-info-empty">
+              <span style={{ fontStyle: 'italic', color: 'var(--text-secondary)' }}>
+                No cloud provider information available
               </span>
             </div>
-            <div className="info-row">
-              <span className="info-label">Region:</span>
-              <span className="info-value">{subnet.cloudInfo.region}</span>
-            </div>
-            <div className="info-row">
-              <span className="info-label">Account ID:</span>
-              <span className="info-value">{subnet.cloudInfo.accountId}</span>
-            </div>
-          </>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Subnet Properties Section */}
       <div className="subnet-properties-section">

@@ -228,11 +228,21 @@ func (s *ServiceLayer) UpdateSubnet(ctx context.Context, req *pb.UpdateSubnetReq
 	if req.Location != "" {
 		existing.Location = req.Location
 	}
-	if req.LocationType != 0 {
-		existing.LocationType = req.LocationType
-	}
-	if req.CloudInfo != nil {
-		existing.CloudInfo = req.CloudInfo
+
+	// Handle location type and cloud info updates
+	// Note: We always update LocationType since it's always sent in the request
+	// (even if it's DATACENTER which has value 0)
+	locationTypeChanged := req.LocationType != existing.LocationType
+	existing.LocationType = req.LocationType
+
+	// Clear cloud info if location type changed to non-CLOUD
+	if locationTypeChanged && existing.LocationType != pb.LocationType_CLOUD {
+		existing.CloudInfo = nil
+	} else if existing.LocationType == pb.LocationType_CLOUD {
+		// Update cloud info if location type is CLOUD
+		if req.CloudInfo != nil {
+			existing.CloudInfo = req.CloudInfo
+		}
 	}
 
 	existing.UpdatedAt = time.Now().Unix()
