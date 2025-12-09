@@ -197,6 +197,11 @@
   width: 100%;
   border-collapse: collapse;
   background-color: var(--bg-primary);
+  table-layout: fixed;
+}
+
+.subnet-table * {
+  box-sizing: border-box;
 }
 
 .subnet-table thead {
@@ -212,33 +217,49 @@
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+/* Column widths for better alignment */
+.subnet-table th:nth-child(1),
+.subnet-table td:nth-child(1) {
+  width: 18%;
+}
+
+.subnet-table th:nth-child(2),
+.subnet-table td:nth-child(2) {
+  width: 22%;
+}
+
+.subnet-table th:nth-child(3),
+.subnet-table td:nth-child(3) {
+  width: 15%;
+}
+
+.subnet-table th:nth-child(4),
+.subnet-table td:nth-child(4) {
+  width: 12%;
+}
+
+.subnet-table th:nth-child(5),
+.subnet-table td:nth-child(5) {
+  width: 20%;
+}
+
+.subnet-table th:nth-child(6),
+.subnet-table td:nth-child(6) {
+  width: 13%;
 }
 
 .subnet-table tbody tr {
   border-bottom: 1px solid var(--border-color);
-  transition: all 0.2s ease;
-  position: relative;
-}
-
-.subnet-table tbody tr::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background-color: var(--accent-color);
-  transform: scaleY(0);
-  transition: transform 0.2s ease;
+  transition: background-color 0.2s ease;
 }
 
 .subnet-table tbody tr:hover {
   background-color: var(--bg-secondary);
   box-shadow: 0 2px 8px var(--shadow-color);
-}
-
-.subnet-table tbody tr:hover::before {
-  transform: scaleY(1);
 }
 
 .subnet-table tbody tr:last-child {
@@ -249,6 +270,9 @@
   padding: 1rem;
   font-size: 0.875rem;
   color: var(--text-primary);
+  vertical-align: middle;
+  text-align: left;
+  box-sizing: border-box;
 }
 
 /* Table Cell Specific Styles */
