@@ -24,12 +24,30 @@
   flex: 1;
 }
 
+.error-message-title {
+  color: var(--color-error);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+}
+
 .error-message-text {
   color: var(--text-primary);
   font-size: 1rem;
   line-height: 1.5;
   margin: 0 0 0.5rem 0;
   font-weight: 500;
+}
+
+.error-message-suggestion {
+  color: var(--color-info);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin: 0.5rem 0 0 0;
+  padding: 0.75rem;
+  background-color: rgba(59, 130, 246, 0.1);
+  border-radius: 6px;
+  border-left: 3px solid var(--color-info);
 }
 
 .error-message-code {

@@ -23,52 +23,61 @@ function ErrorMessage({
   const getErrorInfo = () => {
     if (typeof error === 'string') {
       return {
+        title: 'Erreur',
         message: error,
+        suggestion: undefined,
         code: undefined,
-        details: undefined,
+        original: undefined,
       };
     }
 
     if ('code' in error && 'message' in error) {
-      // APIError
+      // APIError with enhanced details
+      const details = error.details as any;
       return {
+        title: details?.title || 'Erreur',
         message: error.message,
+        suggestion: details?.suggestion,
         code: error.code,
-        details: error.details,
+        original: details?.original,
       };
     }
 
     // Standard Error object
     return {
-      message: error.message || 'An unexpected error occurred',
+      title: 'Erreur inattendue',
+      message: error.message || 'Une erreur inattendue s\'est produite',
+      suggestion: 'Veuillez réessayer ou contacter le support.',
       code: undefined,
-      details: undefined,
+      original: undefined,
     };
   };
 
-  const { message, code, details } = getErrorInfo();
+  const { title, message, suggestion, code, original } = getErrorInfo();
 
   return (
     <div className="error-message-container">
       <div className="error-message-header">
         <span className="error-message-icon">⚠️</span>
         <div className="error-message-content">
+          <h4 className="error-message-title">{title}</h4>
           <p className="error-message-text">{message}</p>
-          {code && (
-            <p className="error-message-code">Error Code: {code}</p>
+          {suggestion && (
+            <p className="error-message-suggestion">💡 {suggestion}</p>
           )}
         </div>
       </div>
 
-      {showDetails && details && Object.keys(details).length > 0 && (
+      {showDetails && (code || original) && (
         <div className="error-message-details">
-          <strong>Additional Details:</strong>
+          <strong>Détails techniques :</strong>
           <ul>
-            {Object.entries(details).map(([key, value]) => (
-              <li key={key}>
-                <strong>{key}:</strong> {value}
-              </li>
-            ))}
+            {code && (
+              <li><strong>Code :</strong> {code}</li>
+            )}
+            {original && (
+              <li><strong>Message original :</strong> {original}</li>
+            )}
           </ul>
         </div>
       )}
@@ -80,7 +89,7 @@ function ErrorMessage({
               className="btn-primary error-message-retry"
               onClick={onRetry}
             >
-              Retry
+              Réessayer
             </button>
           )}
           {onDismiss && (
@@ -88,7 +97,7 @@ function ErrorMessage({
               className="btn-secondary error-message-dismiss"
               onClick={onDismiss}
             >
-              Dismiss
+              Fermer
             </button>
           )}
         </div>

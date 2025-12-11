@@ -11,6 +11,7 @@ import type {
 } from '../types';
 import { LocationType, CloudProviderType } from '../types';
 import { API_BASE_URL } from '../config/constants';
+import { translateError } from '../utils/errorMessages';
 
 /**
  * Transform API response from snake_case to camelCase
@@ -301,90 +302,53 @@ class APIClient {
    * @returns Structured API error
    */
   private handleError(error: AxiosError): APIError {
+    // Use the error translation utility for user-friendly messages
+    const translation = translateError(error);
+    
     // Check if error response exists and has expected structure
     if (error.response?.data) {
       const data = error.response.data as any;
       
-      // If backend returns structured error, use it
+      // If backend returns structured error, use translated message
+      if (data.error && data.error.code) {
+        return {
+          code: data.error.code,
+          message: translation.message,
+          details: {
+            original: data.error.message,
+            suggestion: translation.suggestion || '',
+            title: translation.title
+          },
+          timestamp: data.error.timestamp || Date.now(),
+        };
+      }
+      
+      // Handle direct error responses
       if (data.code && data.message) {
         return {
           code: data.code,
-          message: data.message,
-          details: data.details,
+          message: translation.message,
+          details: {
+            original: data.message,
+            suggestion: translation.suggestion || '',
+            title: translation.title
+          },
           timestamp: data.timestamp || Date.now(),
         };
       }
     }
 
-    // Handle network errors
-    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-      return {
-        code: 'NETWORK_TIMEOUT',
-        message: 'Request timed out. Please check your connection and try again.',
-        timestamp: Date.now(),
-      };
-    }
-
-    if (!error.response) {
-      return {
-        code: 'NETWORK_ERROR',
-        message: 'Unable to connect to the server. Please check your connection.',
-        timestamp: Date.now(),
-      };
-    }
-
-    // Handle HTTP status codes
-    const status = error.response.status;
-    switch (status) {
-      case 400:
-        return {
-          code: 'BAD_REQUEST',
-          message: 'Invalid request data. Please check your input.',
-          timestamp: Date.now(),
-        };
-      case 401:
-        return {
-          code: 'UNAUTHORIZED',
-          message: 'Authentication required. Please log in.',
-          timestamp: Date.now(),
-        };
-      case 403:
-        return {
-          code: 'FORBIDDEN',
-          message: 'You do not have permission to perform this action.',
-          timestamp: Date.now(),
-        };
-      case 404:
-        return {
-          code: 'NOT_FOUND',
-          message: 'The requested resource was not found.',
-          timestamp: Date.now(),
-        };
-      case 409:
-        return {
-          code: 'CONFLICT',
-          message: 'A conflict occurred. The resource may already exist.',
-          timestamp: Date.now(),
-        };
-      case 500:
-        return {
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'An internal server error occurred. Please try again later.',
-          timestamp: Date.now(),
-        };
-      case 503:
-        return {
-          code: 'SERVICE_UNAVAILABLE',
-          message: 'The service is temporarily unavailable. Please try again later.',
-          timestamp: Date.now(),
-        };
-      default:
-        return {
-          code: 'UNKNOWN_ERROR',
-          message: `An unexpected error occurred (${status}).`,
-          timestamp: Date.now(),
-        };
-    }
+    // For all other errors, use translated messages
+    return {
+      code: error.code || 'UNKNOWN_ERROR',
+      message: translation.message,
+      details: {
+        original: error.message,
+        suggestion: translation.suggestion || '',
+        title: translation.title
+      },
+      timestamp: Date.now(),
+    };
   }
 }
 
