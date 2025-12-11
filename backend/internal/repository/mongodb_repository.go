@@ -163,8 +163,8 @@ func (r *MongoDBRepository) FindAll(ctx context.Context, filters *SubnetFilters)
 		}
 	}
 
-	// Set up options
-	opts := options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}})
+	// Set up options - sort by CIDR for logical IP address ordering
+	opts := options.Find().SetSort(bson.D{{Key: "cidr", Value: 1}})
 
 	// Apply pagination
 	if filters != nil && filters.PageSize > 0 {

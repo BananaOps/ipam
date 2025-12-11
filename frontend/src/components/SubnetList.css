@@ -189,6 +189,48 @@
   font-size: 1.25rem;
 }
 
+/* Subnets Display with Grouping */
+.subnets-display {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.subnet-group {
+  background-color: var(--bg-primary);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.group-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.group-count {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  background-color: rgba(14, 165, 233, 0.1);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
 /* Empty State */
 .subnet-list-empty {
   display: flex;
@@ -287,12 +329,14 @@
 .subnet-table th:nth-child(4),
 .subnet-table td:nth-child(4) {
   width: 10%; /* Type */
+  text-align: center;
 }
 
 .subnet-table th:nth-child(5),
 .subnet-table td:nth-child(5) {
   width: 26%; /* Cloud Info - plus large */
   min-width: 220px;
+  text-align: center;
 }
 
 .subnet-table th:nth-child(6),
@@ -417,6 +461,27 @@
 .no-cloud-info {
   color: var(--text-secondary);
   font-style: italic;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 40px;
+}
+
+/* Center cloud info container */
+.cloud-info-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 200px;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Center location type badge */
+.location-type-badge {
+  margin: 0 auto;
 }
 
 /* Utilization Display */
