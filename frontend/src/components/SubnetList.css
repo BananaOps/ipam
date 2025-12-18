@@ -354,6 +354,23 @@
   box-shadow: 0 2px 8px var(--shadow-color);
 }
 
+/* Clickable row styles */
+.subnet-table tbody tr.clickable-row {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.subnet-table tbody tr.clickable-row:hover {
+  background-color: rgba(14, 165, 233, 0.05);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--shadow-color);
+}
+
+.subnet-table tbody tr.clickable-row:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px var(--shadow-color);
+}
+
 .subnet-table tbody tr:last-child {
   border-bottom: none;
 }
@@ -370,7 +387,9 @@
 /* Table Cell Specific Styles */
 .subnet-cidr {
   font-family: 'Courier New', monospace;
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--accent-color);
+  font-size: 0.9rem;
 }
 
 .subnet-link {

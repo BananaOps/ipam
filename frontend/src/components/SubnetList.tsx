@@ -1,6 +1,6 @@
 // SubnetList component - displays subnets with filtering and search
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faFilter, faNetworkWired } from '@fortawesome/free-solid-svg-icons';
 import { apiClient } from '../services/api';
@@ -102,6 +102,7 @@ type SortOrder = 'asc' | 'desc';
 type GroupBy = 'none' | 'provider' | 'location' | 'type';
 
 function SubnetList({ filters: externalFilters, onFilterChange }: SubnetListProps) {
+  const navigate = useNavigate();
   const [subnets, setSubnets] = useState<Subnet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<APIError | Error | null>(null);
@@ -374,11 +375,13 @@ function SubnetList({ filters: externalFilters, onFilterChange }: SubnetListProp
                       )}
                       <tbody>
                         {groupSubnets.map((subnet) => (
-                <tr key={subnet.id} className="subnet-row">
+                <tr 
+                  key={subnet.id} 
+                  className="subnet-row clickable-row"
+                  onClick={() => navigate(`/subnets/${subnet.id}`)}
+                >
                   <td className="subnet-cidr">
-                    <Link to={`/subnets/${subnet.id}`} className="subnet-link">
-                      {subnet.cidr}
-                    </Link>
+                    {subnet.cidr}
                   </td>
                   <td className="subnet-name">{subnet.name}</td>
                   <td className="subnet-location">{subnet.location}</td>
