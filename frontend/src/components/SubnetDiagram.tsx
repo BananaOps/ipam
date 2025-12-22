@@ -328,7 +328,8 @@ function SubnetDiagram({ subnets, connections = [], viewMode, isFullscreen }: Su
   };
 
   const resetZoom = () => {
-    setTransform({ x: 0, y: 0, scale: 1 });
+    // Simple reset to scale 1:1 with a basic centering
+    setTransform({ x: 50, y: 50, scale: 1 });
   };
 
   const fitToScreen = () => {
@@ -619,12 +620,14 @@ function SubnetDiagram({ subnets, connections = [], viewMode, isFullscreen }: Su
   const maxX = Math.max(...allNodes.map(n => n.x + n.width), 500);
   const maxY = Math.max(...allNodes.map(n => n.y + n.height), 400);
 
-  // Reset zoom when view mode changes
+  // Fit to screen when view mode changes to ensure diagram is always visible
   useEffect(() => {
-    resetZoom();
+    if (allNodes.length > 0) {
+      setTimeout(fitToScreen, 100);
+    }
   }, [viewMode]);
 
-  // Fit to screen when nodes change
+  // Fit to screen when nodes change to ensure diagram is always visible
   useEffect(() => {
     if (allNodes.length > 0) {
       setTimeout(fitToScreen, 100);
