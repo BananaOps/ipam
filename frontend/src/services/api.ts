@@ -29,7 +29,7 @@ function transformSubnetFromAPI(apiSubnet: any): Subnet {
       region: apiSubnet.cloud_info.region,
       accountId: apiSubnet.cloud_info.account_id,
     } : undefined,
-    details: {
+    details: apiSubnet.details ? {
       address: apiSubnet.details.address,
       netmask: apiSubnet.details.netmask,
       wildcard: apiSubnet.details.wildcard,
@@ -40,11 +40,26 @@ function transformSubnetFromAPI(apiSubnet: any): Subnet {
       hostMax: apiSubnet.details.host_max,
       hostsPerNet: apiSubnet.details.hosts_per_net,
       isPublic: apiSubnet.details.is_public,
+    } : {
+      address: '',
+      netmask: '',
+      wildcard: '',
+      network: '',
+      type: '',
+      broadcast: '',
+      hostMin: '',
+      hostMax: '',
+      hostsPerNet: 0,
+      isPublic: false,
     },
-    utilization: {
+    utilization: apiSubnet.utilization ? {
       totalIps: apiSubnet.utilization.total_ips,
       allocatedIps: apiSubnet.utilization.allocated_ips,
       utilizationPercent: apiSubnet.utilization.utilization_percent,
+    } : {
+      totalIps: 0,
+      allocatedIps: 0,
+      utilizationPercent: 0,
     },
     createdAt: apiSubnet.created_at,
     updatedAt: apiSubnet.updated_at,

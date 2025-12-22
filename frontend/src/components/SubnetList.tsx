@@ -399,6 +399,11 @@ function SubnetList({ filters: externalFilters, onFilterChange }: SubnetListProp
                             size="lg"
                             title={subnet.cloudInfo.provider.toUpperCase()}
                           />
+                          {subnet.cloudInfo.resourceType && (
+                            <span className={`resource-type-badge ${subnet.cloudInfo.resourceType}`}>
+                              {subnet.cloudInfo.resourceType.toUpperCase()}
+                            </span>
+                          )}
                         </div>
                         <div className="cloud-info-labels">
                           <span 

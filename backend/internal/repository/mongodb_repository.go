@@ -330,3 +330,309 @@ func (r *MongoDBRepository) toProto(doc *subnetDocument) *pb.Subnet {
 
 	return subnet
 }
+
+// Extended methods for cloud provider integration
+
+// CreateSubnet creates a new subnet using the repository model
+func (r *MongoDBRepository) CreateSubnet(ctx context.Context, subnet *Subnet) error {
+	doc := r.toRepositoryDocument(subnet)
+
+	_, err := r.collection.InsertOne(ctx, doc)
+	if err != nil {
+		return fmt.Errorf("failed to create subnet: %w", err)
+	}
+
+	return nil
+}
+
+// GetSubnetByCIDR retrieves a subnet by its CIDR
+func (r *MongoDBRepository) GetSubnetByCIDR(ctx context.Context, cidr string) (*Subnet, error) {
+	filter := bson.M{"cidr": cidr}
+
+	var doc subnetRepositoryDocument
+	err := r.collection.FindOne(ctx, filter).Decode(&doc)
+	if err == mongo.ErrNoDocuments {
+		return nil, fmt.Errorf("subnet not found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to find subnet: %w", err)
+	}
+
+	return r.fromRepositoryDocument(&doc), nil
+}
+
+// UpdateSubnet updates an existing subnet using the repository model
+func (r *MongoDBRepository) UpdateSubnet(ctx context.Context, id string, subnet *Subnet) error {
+	filter := bson.M{"_id": id}
+	doc := r.toRepositoryDocument(subnet)
+
+	// Remove _id from update document
+	update := bson.M{"$set": doc}
+
+	result, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to update subnet: %w", err)
+	}
+
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("subnet not found")
+	}
+
+	return nil
+}
+
+// ListSubnets retrieves subnets with filtering using the repository model
+func (r *MongoDBRepository) ListSubnets(ctx context.Context, filters SubnetFilters) (*SubnetList, error) {
+	filter := bson.M{}
+
+	// Apply filters
+	if filters.LocationFilter != "" {
+		filter["location"] = bson.M{"$regex": filters.LocationFilter, "$options": "i"}
+	}
+	if filters.CloudProviderFilter != "" {
+		filter["cloudInfo.provider"] = filters.CloudProviderFilter
+	}
+	if filters.CloudProvider != "" {
+		filter["cloudInfo.provider"] = filters.CloudProvider
+	}
+	if filters.SearchQuery != "" {
+		filter["$or"] = []bson.M{
+			{"name": bson.M{"$regex": filters.SearchQuery, "$options": "i"}},
+			{"cidr": bson.M{"$regex": filters.SearchQuery, "$options": "i"}},
+		}
+	}
+
+	// Count total records
+	totalCount, err := r.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count subnets: %w", err)
+	}
+
+	// Build find options
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{{"createdAt", -1}})
+
+	// Apply pagination
+	if filters.PageSize > 0 {
+		findOptions.SetLimit(int64(filters.PageSize))
+		findOptions.SetSkip(int64(filters.Page * filters.PageSize))
+	}
+
+	cursor, err := r.collection.Find(ctx, filter, findOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query subnets: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var subnets []*Subnet
+	for cursor.Next(ctx) {
+		var doc subnetRepositoryDocument
+		if err := cursor.Decode(&doc); err != nil {
+			return nil, fmt.Errorf("failed to decode subnet: %w", err)
+		}
+		subnets = append(subnets, r.fromRepositoryDocument(&doc))
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error: %w", err)
+	}
+
+	return &SubnetList{
+		Subnets:    subnets,
+		TotalCount: int32(totalCount),
+	}, nil
+}
+
+// subnetRepositoryDocument represents the MongoDB document structure for repository model
+type subnetRepositoryDocument struct {
+	ID           string                           `bson:"_id"`
+	CIDR         string                           `bson:"cidr"`
+	Name         string                           `bson:"name"`
+	Location     string                           `bson:"location"`
+	LocationType string                           `bson:"locationType"`
+	CloudInfo    *cloudInfoRepositoryDocument     `bson:"cloudInfo,omitempty"`
+	Details      *subnetDetailsRepositoryDocument `bson:"details,omitempty"`
+	Utilization  *utilizationRepositoryDocument   `bson:"utilization,omitempty"`
+	Tags         map[string]string                `bson:"tags,omitempty"`
+	ParentID     string                           `bson:"parentId,omitempty"`
+	CreatedAt    int64                            `bson:"createdAt"`
+	UpdatedAt    int64                            `bson:"updatedAt"`
+}
+
+type cloudInfoRepositoryDocument struct {
+	Provider     string `bson:"provider"`
+	Region       string `bson:"region"`
+	AccountID    string `bson:"accountId"`
+	ResourceType string `bson:"resourceType,omitempty"`
+	VPCId        string `bson:"vpcId,omitempty"`
+	SubnetId     string `bson:"subnetId,omitempty"`
+}
+
+type subnetDetailsRepositoryDocument struct {
+	Address     string `bson:"address"`
+	Netmask     string `bson:"netmask"`
+	Wildcard    string `bson:"wildcard"`
+	Network     string `bson:"network"`
+	Type        string `bson:"type"`
+	Broadcast   string `bson:"broadcast"`
+	HostMin     string `bson:"hostMin"`
+	HostMax     string `bson:"hostMax"`
+	HostsPerNet int32  `bson:"hostsPerNet"`
+	IsPublic    bool   `bson:"isPublic"`
+}
+
+type utilizationRepositoryDocument struct {
+	TotalIPs           int32   `bson:"totalIps"`
+	AllocatedIPs       int32   `bson:"allocatedIps"`
+	UtilizationPercent float64 `bson:"utilizationPercent"`
+	LastUpdated        int64   `bson:"lastUpdated"`
+}
+
+// toRepositoryDocument converts a repository Subnet to a MongoDB document
+func (r *MongoDBRepository) toRepositoryDocument(subnet *Subnet) *subnetRepositoryDocument {
+	doc := &subnetRepositoryDocument{
+		ID:           subnet.ID,
+		CIDR:         subnet.CIDR,
+		Name:         subnet.Name,
+		Location:     subnet.Location,
+		LocationType: subnet.LocationType,
+		Tags:         subnet.Tags,
+		ParentID:     subnet.ParentID,
+		CreatedAt:    subnet.CreatedAt.Unix(),
+		UpdatedAt:    subnet.UpdatedAt.Unix(),
+	}
+
+	if subnet.CloudInfo != nil {
+		doc.CloudInfo = &cloudInfoRepositoryDocument{
+			Provider:     subnet.CloudInfo.Provider,
+			Region:       subnet.CloudInfo.Region,
+			AccountID:    subnet.CloudInfo.AccountID,
+			ResourceType: subnet.CloudInfo.ResourceType,
+			VPCId:        subnet.CloudInfo.VPCId,
+			SubnetId:     subnet.CloudInfo.SubnetId,
+		}
+	}
+
+	if subnet.Details != nil {
+		doc.Details = &subnetDetailsRepositoryDocument{
+			Address:     subnet.Details.Address,
+			Netmask:     subnet.Details.Netmask,
+			Wildcard:    subnet.Details.Wildcard,
+			Network:     subnet.Details.Network,
+			Type:        subnet.Details.Type,
+			Broadcast:   subnet.Details.Broadcast,
+			HostMin:     subnet.Details.HostMin,
+			HostMax:     subnet.Details.HostMax,
+			HostsPerNet: subnet.Details.HostsPerNet,
+			IsPublic:    subnet.Details.IsPublic,
+		}
+	}
+
+	if subnet.Utilization != nil {
+		doc.Utilization = &utilizationRepositoryDocument{
+			TotalIPs:           subnet.Utilization.TotalIPs,
+			AllocatedIPs:       subnet.Utilization.AllocatedIPs,
+			UtilizationPercent: subnet.Utilization.UtilizationPercent,
+			LastUpdated:        subnet.Utilization.LastUpdated.Unix(),
+		}
+	}
+
+	return doc
+}
+
+// fromRepositoryDocument converts a MongoDB document to a repository Subnet
+func (r *MongoDBRepository) fromRepositoryDocument(doc *subnetRepositoryDocument) *Subnet {
+	subnet := &Subnet{
+		ID:           doc.ID,
+		CIDR:         doc.CIDR,
+		Name:         doc.Name,
+		Location:     doc.Location,
+		LocationType: doc.LocationType,
+		Tags:         doc.Tags,
+		ParentID:     doc.ParentID,
+		CreatedAt:    time.Unix(doc.CreatedAt, 0),
+		UpdatedAt:    time.Unix(doc.UpdatedAt, 0),
+	}
+
+	if doc.CloudInfo != nil {
+		subnet.CloudInfo = &CloudInfo{
+			Provider:     doc.CloudInfo.Provider,
+			Region:       doc.CloudInfo.Region,
+			AccountID:    doc.CloudInfo.AccountID,
+			ResourceType: doc.CloudInfo.ResourceType,
+			VPCId:        doc.CloudInfo.VPCId,
+			SubnetId:     doc.CloudInfo.SubnetId,
+		}
+	}
+
+	if doc.Details != nil {
+		subnet.Details = &SubnetDetails{
+			Address:     doc.Details.Address,
+			Netmask:     doc.Details.Netmask,
+			Wildcard:    doc.Details.Wildcard,
+			Network:     doc.Details.Network,
+			Type:        doc.Details.Type,
+			Broadcast:   doc.Details.Broadcast,
+			HostMin:     doc.Details.HostMin,
+			HostMax:     doc.Details.HostMax,
+			HostsPerNet: doc.Details.HostsPerNet,
+			IsPublic:    doc.Details.IsPublic,
+		}
+	}
+
+	if doc.Utilization != nil {
+		subnet.Utilization = &Utilization{
+			TotalIPs:           doc.Utilization.TotalIPs,
+			AllocatedIPs:       doc.Utilization.AllocatedIPs,
+			UtilizationPercent: doc.Utilization.UtilizationPercent,
+			LastUpdated:        time.Unix(doc.Utilization.LastUpdated, 0),
+		}
+	}
+
+	return subnet
+}
+
+// GetSubnetChildren retrieves child subnets for a given parent subnet ID
+func (r *MongoDBRepository) GetSubnetChildren(ctx context.Context, parentID string) ([]*Subnet, error) {
+	filter := bson.M{"parentId": parentID}
+
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{{"cidr", 1}})
+
+	cursor, err := r.collection.Find(ctx, filter, findOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query child subnets: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var subnets []*Subnet
+	for cursor.Next(ctx) {
+		var doc subnetRepositoryDocument
+		if err := cursor.Decode(&doc); err != nil {
+			return nil, fmt.Errorf("failed to decode child subnet: %w", err)
+		}
+		subnets = append(subnets, r.fromRepositoryDocument(&doc))
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error: %w", err)
+	}
+
+	return subnets, nil
+}
+
+// GetSubnetByID retrieves a subnet by its ID using repository models
+func (r *MongoDBRepository) GetSubnetByID(ctx context.Context, id string) (*Subnet, error) {
+	filter := bson.M{"_id": id}
+
+	var doc subnetRepositoryDocument
+	err := r.collection.FindOne(ctx, filter).Decode(&doc)
+	if err == mongo.ErrNoDocuments {
+		return nil, fmt.Errorf("subnet not found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to find subnet: %w", err)
+	}
+
+	return r.fromRepositoryDocument(&doc), nil
+}

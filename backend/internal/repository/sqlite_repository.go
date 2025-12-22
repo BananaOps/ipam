@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	pb "github.com/bananaops/ipam-bananaops/proto"
 	_ "modernc.org/sqlite"
@@ -60,6 +61,10 @@ func (r *SQLiteRepository) initSchema() error {
 		cloud_provider TEXT,
 		cloud_region TEXT,
 		cloud_account_id TEXT,
+		cloud_resource_type TEXT,
+		cloud_vpc_id TEXT,
+		cloud_subnet_id TEXT,
+		parent_id TEXT,
 		address TEXT,
 		netmask TEXT,
 		wildcard TEXT,
@@ -74,12 +79,15 @@ func (r *SQLiteRepository) initSchema() error {
 		allocated_ips INTEGER,
 		utilization_percent REAL,
 		created_at INTEGER,
-		updated_at INTEGER
+		updated_at INTEGER,
+		FOREIGN KEY (parent_id) REFERENCES subnets(id)
 	);
 
 	CREATE INDEX IF NOT EXISTS idx_subnets_location ON subnets(location);
 	CREATE INDEX IF NOT EXISTS idx_subnets_cloud_provider ON subnets(cloud_provider);
 	CREATE INDEX IF NOT EXISTS idx_subnets_cidr ON subnets(cidr);
+	CREATE INDEX IF NOT EXISTS idx_subnets_parent_id ON subnets(parent_id);
+	CREATE INDEX IF NOT EXISTS idx_subnets_cloud_resource_type ON subnets(cloud_resource_type);
 	`
 
 	_, err := r.db.Exec(schema)
@@ -395,4 +403,476 @@ func parseLocationType(s string) pb.LocationType {
 	default:
 		return pb.LocationType_DATACENTER
 	}
+}
+
+// Extended methods for cloud provider integration
+
+// CreateSubnet creates a new subnet using the repository model
+func (r *SQLiteRepository) CreateSubnet(ctx context.Context, subnet *Subnet) error {
+	query := `
+		INSERT INTO subnets (
+			id, cidr, name, description, location, location_type,
+			cloud_provider, cloud_region, cloud_account_id, cloud_resource_type, cloud_vpc_id, cloud_subnet_id,
+			parent_id, address, netmask, wildcard, network, type, broadcast,
+			host_min, host_max, hosts_per_net, is_public,
+			total_ips, allocated_ips, utilization_percent, created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+
+	cloudProvider := ""
+	cloudRegion := ""
+	cloudAccountID := ""
+	cloudResourceType := ""
+	cloudVPCId := ""
+	cloudSubnetId := ""
+	if subnet.CloudInfo != nil {
+		cloudProvider = subnet.CloudInfo.Provider
+		cloudRegion = subnet.CloudInfo.Region
+		cloudAccountID = subnet.CloudInfo.AccountID
+		cloudResourceType = subnet.CloudInfo.ResourceType
+		cloudVPCId = subnet.CloudInfo.VPCId
+		cloudSubnetId = subnet.CloudInfo.SubnetId
+	}
+
+	// Subnet details
+	address := ""
+	netmask := ""
+	wildcard := ""
+	network := ""
+	subnetType := ""
+	broadcast := ""
+	hostMin := ""
+	hostMax := ""
+	var hostsPerNet int32 = 0
+	isPublic := 0
+	if subnet.Details != nil {
+		address = subnet.Details.Address
+		netmask = subnet.Details.Netmask
+		wildcard = subnet.Details.Wildcard
+		network = subnet.Details.Network
+		subnetType = subnet.Details.Type
+		broadcast = subnet.Details.Broadcast
+		hostMin = subnet.Details.HostMin
+		hostMax = subnet.Details.HostMax
+		hostsPerNet = subnet.Details.HostsPerNet
+		if subnet.Details.IsPublic {
+			isPublic = 1
+		}
+	}
+
+	// Utilization
+	var totalIPs int32 = 0
+	var allocatedIPs int32 = 0
+	utilizationPercent := 0.0
+	if subnet.Utilization != nil {
+		totalIPs = subnet.Utilization.TotalIPs
+		allocatedIPs = subnet.Utilization.AllocatedIPs
+		utilizationPercent = subnet.Utilization.UtilizationPercent
+	}
+
+	_, err := r.db.ExecContext(ctx, query,
+		subnet.ID, subnet.CIDR, subnet.Name, "",
+		subnet.Location, subnet.LocationType,
+		cloudProvider, cloudRegion, cloudAccountID, cloudResourceType, cloudVPCId, cloudSubnetId,
+		subnet.ParentID, address, netmask, wildcard, network, subnetType, broadcast,
+		hostMin, hostMax, hostsPerNet, isPublic,
+		totalIPs, allocatedIPs, utilizationPercent,
+		subnet.CreatedAt.Unix(), subnet.UpdatedAt.Unix(),
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to create subnet: %w", err)
+	}
+
+	return nil
+}
+
+// GetSubnetByCIDR retrieves a subnet by its CIDR
+func (r *SQLiteRepository) GetSubnetByCIDR(ctx context.Context, cidr string) (*Subnet, error) {
+	query := `
+		SELECT 
+			id, cidr, name, description, location, location_type,
+			cloud_provider, cloud_region, cloud_account_id, cloud_resource_type, cloud_vpc_id, cloud_subnet_id,
+			parent_id, utilization_percent, created_at, updated_at
+		FROM subnets
+		WHERE cidr = ?
+	`
+
+	var subnet Subnet
+	var description sql.NullString
+	var cloudProvider, cloudRegion, cloudAccountID, cloudResourceType, cloudVPCId, cloudSubnetId sql.NullString
+	var parentID sql.NullString
+	var utilizationPercent sql.NullFloat64
+	var createdAt, updatedAt int64
+
+	err := r.db.QueryRowContext(ctx, query, cidr).Scan(
+		&subnet.ID, &subnet.CIDR, &subnet.Name, &description,
+		&subnet.Location, &subnet.LocationType,
+		&cloudProvider, &cloudRegion, &cloudAccountID, &cloudResourceType, &cloudVPCId, &cloudSubnetId,
+		&parentID, &utilizationPercent, &createdAt, &updatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("subnet not found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to find subnet: %w", err)
+	}
+
+	// Parse cloud info
+	if cloudProvider.Valid {
+		subnet.CloudInfo = &CloudInfo{
+			Provider:     cloudProvider.String,
+			Region:       cloudRegion.String,
+			AccountID:    cloudAccountID.String,
+			ResourceType: cloudResourceType.String,
+			VPCId:        cloudVPCId.String,
+			SubnetId:     cloudSubnetId.String,
+		}
+	}
+
+	// Parse utilization
+	if utilizationPercent.Valid {
+		subnet.Utilization = &Utilization{
+			UtilizationPercent: utilizationPercent.Float64,
+			LastUpdated:        time.Unix(updatedAt, 0),
+		}
+	}
+
+	if parentID.Valid {
+		subnet.ParentID = parentID.String
+	}
+
+	subnet.CreatedAt = time.Unix(createdAt, 0)
+	subnet.UpdatedAt = time.Unix(updatedAt, 0)
+
+	return &subnet, nil
+}
+
+// UpdateSubnet updates an existing subnet using the repository model
+func (r *SQLiteRepository) UpdateSubnet(ctx context.Context, id string, subnet *Subnet) error {
+	query := `
+		UPDATE subnets SET
+			cidr = ?, name = ?, location = ?, location_type = ?,
+			cloud_provider = ?, cloud_region = ?, cloud_account_id = ?,
+			utilization_percent = ?, updated_at = ?
+		WHERE id = ?
+	`
+
+	cloudProvider := ""
+	cloudRegion := ""
+	cloudAccountID := ""
+	if subnet.CloudInfo != nil {
+		cloudProvider = subnet.CloudInfo.Provider
+		cloudRegion = subnet.CloudInfo.Region
+		cloudAccountID = subnet.CloudInfo.AccountID
+	}
+
+	utilizationPercent := 0.0
+	if subnet.Utilization != nil {
+		utilizationPercent = subnet.Utilization.UtilizationPercent
+	}
+
+	result, err := r.db.ExecContext(ctx, query,
+		subnet.CIDR, subnet.Name, subnet.Location, subnet.LocationType,
+		cloudProvider, cloudRegion, cloudAccountID,
+		utilizationPercent, subnet.UpdatedAt.Unix(),
+		id,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to update subnet: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("subnet not found")
+	}
+
+	return nil
+}
+
+// ListSubnets retrieves subnets with filtering using the repository model
+func (r *SQLiteRepository) ListSubnets(ctx context.Context, filters SubnetFilters) (*SubnetList, error) {
+	baseQuery := `
+		SELECT 
+			id, cidr, name, description, location, location_type,
+			cloud_provider, cloud_region, cloud_account_id, cloud_resource_type, cloud_vpc_id, cloud_subnet_id,
+			parent_id, utilization_percent, created_at, updated_at
+		FROM subnets
+		WHERE 1=1
+	`
+
+	whereClause := ""
+	args := []interface{}{}
+
+	// Apply filters
+	if filters.LocationFilter != "" {
+		whereClause += " AND location LIKE ?"
+		args = append(args, "%"+filters.LocationFilter+"%")
+	}
+	if filters.CloudProviderFilter != "" {
+		whereClause += " AND cloud_provider = ?"
+		args = append(args, filters.CloudProviderFilter)
+	}
+	if filters.CloudProvider != "" {
+		whereClause += " AND cloud_provider = ?"
+		args = append(args, filters.CloudProvider)
+	}
+	if filters.SearchQuery != "" {
+		whereClause += " AND (name LIKE ? OR cidr LIKE ?)"
+		searchPattern := "%" + filters.SearchQuery + "%"
+		args = append(args, searchPattern, searchPattern)
+	}
+
+	// Count total records
+	countQuery := "SELECT COUNT(*) FROM subnets WHERE 1=1" + whereClause
+	var totalCount int32
+	err := r.db.QueryRowContext(ctx, countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count subnets: %w", err)
+	}
+
+	// Build final query
+	finalQuery := baseQuery + whereClause + " ORDER BY created_at DESC"
+
+	// Apply pagination
+	if filters.PageSize > 0 {
+		finalQuery += " LIMIT ? OFFSET ?"
+		offset := filters.Page * filters.PageSize
+		args = append(args, filters.PageSize, offset)
+	}
+
+	rows, err := r.db.QueryContext(ctx, finalQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query subnets: %w", err)
+	}
+	defer rows.Close()
+
+	var subnets []*Subnet
+
+	for rows.Next() {
+		var subnet Subnet
+		var description sql.NullString
+		var cloudProvider, cloudRegion, cloudAccountID, cloudResourceType, cloudVPCId, cloudSubnetId sql.NullString
+		var parentID sql.NullString
+		var utilizationPercent sql.NullFloat64
+		var createdAt, updatedAt int64
+
+		err := rows.Scan(
+			&subnet.ID, &subnet.CIDR, &subnet.Name, &description,
+			&subnet.Location, &subnet.LocationType,
+			&cloudProvider, &cloudRegion, &cloudAccountID, &cloudResourceType, &cloudVPCId, &cloudSubnetId,
+			&parentID, &utilizationPercent, &createdAt, &updatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan subnet: %w", err)
+		}
+
+		// Parse cloud info
+		if cloudProvider.Valid {
+			subnet.CloudInfo = &CloudInfo{
+				Provider:     cloudProvider.String,
+				Region:       cloudRegion.String,
+				AccountID:    cloudAccountID.String,
+				ResourceType: cloudResourceType.String,
+				VPCId:        cloudVPCId.String,
+				SubnetId:     cloudSubnetId.String,
+			}
+		}
+
+		// Parse utilization
+		if utilizationPercent.Valid {
+			subnet.Utilization = &Utilization{
+				UtilizationPercent: utilizationPercent.Float64,
+				LastUpdated:        time.Unix(updatedAt, 0),
+			}
+		}
+
+		if parentID.Valid {
+			subnet.ParentID = parentID.String
+		}
+
+		subnet.CreatedAt = time.Unix(createdAt, 0)
+		subnet.UpdatedAt = time.Unix(updatedAt, 0)
+
+		subnets = append(subnets, &subnet)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", err)
+	}
+
+	return &SubnetList{
+		Subnets:    subnets,
+		TotalCount: totalCount,
+	}, nil
+}
+
+// GetSubnetChildren retrieves child subnets for a given parent subnet ID
+func (r *SQLiteRepository) GetSubnetChildren(ctx context.Context, parentID string) ([]*Subnet, error) {
+	query := `
+		SELECT 
+			id, cidr, name, description, location, location_type,
+			cloud_provider, cloud_region, cloud_account_id, cloud_resource_type, cloud_vpc_id, cloud_subnet_id,
+			parent_id, utilization_percent, created_at, updated_at
+		FROM subnets
+		WHERE parent_id = ?
+		ORDER BY cidr
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, parentID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query child subnets: %w", err)
+	}
+	defer rows.Close()
+
+	var subnets []*Subnet
+
+	for rows.Next() {
+		var subnet Subnet
+		var description sql.NullString
+		var cloudProvider, cloudRegion, cloudAccountID, cloudResourceType, cloudVPCId, cloudSubnetId sql.NullString
+		var parentID sql.NullString
+		var utilizationPercent sql.NullFloat64
+		var createdAt, updatedAt int64
+
+		err := rows.Scan(
+			&subnet.ID, &subnet.CIDR, &subnet.Name, &description,
+			&subnet.Location, &subnet.LocationType,
+			&cloudProvider, &cloudRegion, &cloudAccountID, &cloudResourceType, &cloudVPCId, &cloudSubnetId,
+			&parentID, &utilizationPercent, &createdAt, &updatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan child subnet: %w", err)
+		}
+
+		// Parse cloud info
+		if cloudProvider.Valid {
+			subnet.CloudInfo = &CloudInfo{
+				Provider:     cloudProvider.String,
+				Region:       cloudRegion.String,
+				AccountID:    cloudAccountID.String,
+				ResourceType: cloudResourceType.String,
+				VPCId:        cloudVPCId.String,
+				SubnetId:     cloudSubnetId.String,
+			}
+		}
+
+		// Parse utilization
+		if utilizationPercent.Valid {
+			subnet.Utilization = &Utilization{
+				UtilizationPercent: utilizationPercent.Float64,
+				LastUpdated:        time.Unix(updatedAt, 0),
+			}
+		}
+
+		if parentID.Valid {
+			subnet.ParentID = parentID.String
+		}
+
+		subnet.CreatedAt = time.Unix(createdAt, 0)
+		subnet.UpdatedAt = time.Unix(updatedAt, 0)
+
+		subnets = append(subnets, &subnet)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating child subnet rows: %w", err)
+	}
+
+	return subnets, nil
+}
+
+// GetSubnetByID retrieves a subnet by its ID using repository models
+func (r *SQLiteRepository) GetSubnetByID(ctx context.Context, id string) (*Subnet, error) {
+	query := `
+		SELECT 
+			id, cidr, name, description, location, location_type,
+			cloud_provider, cloud_region, cloud_account_id, cloud_resource_type, cloud_vpc_id, cloud_subnet_id,
+			parent_id, address, netmask, wildcard, network, type, broadcast,
+			host_min, host_max, hosts_per_net, is_public,
+			total_ips, allocated_ips, utilization_percent, created_at, updated_at
+		FROM subnets
+		WHERE id = ?
+	`
+
+	var subnet Subnet
+	var description sql.NullString
+	var cloudProvider, cloudRegion, cloudAccountID, cloudResourceType, cloudVPCId, cloudSubnetId sql.NullString
+	var parentID sql.NullString
+	var address, netmask, wildcard, network, subnetType, broadcast sql.NullString
+	var hostMin, hostMax sql.NullString
+	var hostsPerNet sql.NullInt32
+	var isPublic sql.NullInt32
+	var totalIPs, allocatedIPs sql.NullInt32
+	var utilizationPercent sql.NullFloat64
+	var createdAt, updatedAt int64
+
+	err := r.db.QueryRowContext(ctx, query, id).Scan(
+		&subnet.ID, &subnet.CIDR, &subnet.Name, &description,
+		&subnet.Location, &subnet.LocationType,
+		&cloudProvider, &cloudRegion, &cloudAccountID, &cloudResourceType, &cloudVPCId, &cloudSubnetId,
+		&parentID, &address, &netmask, &wildcard, &network, &subnetType, &broadcast,
+		&hostMin, &hostMax, &hostsPerNet, &isPublic,
+		&totalIPs, &allocatedIPs, &utilizationPercent, &createdAt, &updatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("subnet not found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to find subnet: %w", err)
+	}
+
+	// Parse cloud info
+	if cloudProvider.Valid {
+		subnet.CloudInfo = &CloudInfo{
+			Provider:     cloudProvider.String,
+			Region:       cloudRegion.String,
+			AccountID:    cloudAccountID.String,
+			ResourceType: cloudResourceType.String,
+			VPCId:        cloudVPCId.String,
+			SubnetId:     cloudSubnetId.String,
+		}
+	}
+
+	// Parse subnet details
+	if address.Valid {
+		subnet.Details = &SubnetDetails{
+			Address:     address.String,
+			Netmask:     netmask.String,
+			Wildcard:    wildcard.String,
+			Network:     network.String,
+			Type:        subnetType.String,
+			Broadcast:   broadcast.String,
+			HostMin:     hostMin.String,
+			HostMax:     hostMax.String,
+			HostsPerNet: hostsPerNet.Int32,
+			IsPublic:    isPublic.Int32 == 1,
+		}
+	}
+
+	// Parse utilization
+	if utilizationPercent.Valid {
+		subnet.Utilization = &Utilization{
+			TotalIPs:           totalIPs.Int32,
+			AllocatedIPs:       allocatedIPs.Int32,
+			UtilizationPercent: utilizationPercent.Float64,
+			LastUpdated:        time.Unix(updatedAt, 0),
+		}
+	}
+
+	if parentID.Valid {
+		subnet.ParentID = parentID.String
+	}
+
+	subnet.CreatedAt = time.Unix(createdAt, 0)
+	subnet.UpdatedAt = time.Unix(updatedAt, 0)
+
+	return &subnet, nil
 }

@@ -1,6 +1,7 @@
 import { Subnet } from '../types';
 import { HIGH_UTILIZATION_THRESHOLD } from '../config/constants';
 import CloudProviderIcon from './CloudProviderIcon';
+import SubnetChildren from './SubnetChildren';
 import './SubnetDetail.css';
 
 interface SubnetDetailProps {
@@ -80,6 +81,14 @@ function SubnetDetail({ subnet }: SubnetDetailProps) {
                 <span className="info-label">Account ID:</span>
                 <span className="info-value">{subnet.cloudInfo.accountId}</span>
               </div>
+              {subnet.cloudInfo.resourceType && (
+                <div className="cloud-info-item">
+                  <span className="info-label">Resource Type:</span>
+                  <span className={`info-value resource-type ${subnet.cloudInfo.resourceType}`}>
+                    {subnet.cloudInfo.resourceType.toUpperCase()}
+                  </span>
+                </div>
+              )}
             </div>
           ) : (
             <div className="cloud-info-empty">
@@ -212,6 +221,9 @@ function SubnetDetail({ subnet }: SubnetDetailProps) {
           )}
         </div>
       </div>
+
+      {/* Child Subnets Section */}
+      <SubnetChildren parentSubnet={subnet} expanded={true} />
     </div>
   );
 }

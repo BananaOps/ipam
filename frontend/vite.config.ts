@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
   // Otherwise, extract backend URL from VITE_API_URL
   const apiUrl = env.VITE_API_URL || '/api/v1'
   const backendUrl = apiUrl.startsWith('/') 
-    ? 'http://localhost:8081' 
+    ? 'http://localhost:8080'  // Changé de 8081 à 8082
     : apiUrl.replace(/\/api\/v1$/, '')
   
   return {

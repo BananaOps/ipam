@@ -305,3 +305,58 @@ func (s *ServiceLayer) DeleteSubnet(ctx context.Context, req *pb.DeleteSubnetReq
 		Success: true,
 	}, nil
 }
+
+// GetSubnetChildren retrieves child subnets for a given parent subnet ID
+func (s *ServiceLayer) GetSubnetChildren(ctx context.Context, parentID string) ([]*repository.Subnet, error) {
+	return s.subnetRepo.GetSubnetChildren(ctx, parentID)
+}
+
+// ListSubnetsRepository retrieves subnets using repository models with enhanced cloud info
+func (s *ServiceLayer) ListSubnetsRepository(ctx context.Context, filters repository.SubnetFilters) (*repository.SubnetList, error) {
+	return s.subnetRepo.ListSubnets(ctx, filters)
+}
+
+// CreateSubnetRepository creates a subnet using repository models
+func (s *ServiceLayer) CreateSubnetRepository(ctx context.Context, subnet *repository.Subnet) error {
+	// Validate CIDR
+	if err := s.ipService.ValidateCIDR(subnet.CIDR); err != nil {
+		return fmt.Errorf("invalid CIDR notation: %w", err)
+	}
+
+	// Calculate subnet details using IP service
+	details, err := s.ipService.CalculateSubnetDetails(subnet.CIDR)
+	if err != nil {
+		return fmt.Errorf("failed to calculate subnet details: %w", err)
+	}
+
+	// Add calculated details to subnet
+	subnet.Details = &repository.SubnetDetails{
+		Address:     details.Address,
+		Netmask:     details.Netmask,
+		Wildcard:    details.Wildcard,
+		Network:     details.Network,
+		Type:        details.Type,
+		Broadcast:   details.Broadcast,
+		HostMin:     details.HostMin,
+		HostMax:     details.HostMax,
+		HostsPerNet: details.HostsPerNet,
+		IsPublic:    details.IsPublic,
+	}
+
+	// Initialize utilization
+	if subnet.Utilization == nil {
+		subnet.Utilization = &repository.Utilization{
+			TotalIPs:           details.HostsPerNet,
+			AllocatedIPs:       0,
+			UtilizationPercent: 0.0,
+			LastUpdated:        time.Now(),
+		}
+	}
+
+	return s.subnetRepo.CreateSubnet(ctx, subnet)
+}
+
+// GetSubnetRepository retrieves a subnet by ID using repository models
+func (s *ServiceLayer) GetSubnetRepository(ctx context.Context, id string) (*repository.Subnet, error) {
+	return s.subnetRepo.GetSubnetByID(ctx, id)
+}

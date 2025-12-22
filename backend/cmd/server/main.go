@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -16,6 +17,8 @@ import (
 func main() {
 	fmt.Println("IPAM by BananaOps - Server")
 	log.Println("Server starting...")
+
+	ctx := context.Background()
 
 	// Load configuration
 	cfg, err := loadConfiguration()
@@ -39,22 +42,29 @@ func main() {
 	log.Println("IP service initialized")
 
 	// Initialize cloud provider manager
-	cloudManager := cloudprovider.NewCloudProviderManager()
+	cloudManager := cloudprovider.NewManager(cfg, repo)
 	log.Println("Cloud provider manager initialized")
+
+	// Start cloud provider manager
+	if err := cloudManager.Start(ctx); err != nil {
+		log.Printf("Failed to start cloud provider manager: %v", err)
+		// Continue without cloud providers if they fail to start
+	}
+	defer cloudManager.Stop()
 
 	// Initialize service layer
 	serviceLayer := service.NewServiceLayer(repo, ipService, cloudManager)
 	log.Println("Service layer initialized")
 
-	// Initialize REST gateway
-	gateway := gateway.NewRESTGateway(serviceLayer)
+	// Initialize REST gateway with cloud manager
+	gatewayHandler := gateway.NewGateway(serviceLayer, cloudManager)
 	log.Println("REST gateway initialized")
 
 	// Start HTTP server
 	serverAddr := fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port)
 	log.Printf("Starting HTTP server on %s", serverAddr)
 
-	if err := http.ListenAndServe(serverAddr, gateway.Handler()); err != nil {
+	if err := http.ListenAndServe(serverAddr, gatewayHandler.Handler()); err != nil {
 		log.Fatalf("Failed to start HTTP server: %v", err)
 	}
 }

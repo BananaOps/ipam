@@ -9,7 +9,7 @@ import './CloudProviderIcon.css';
 interface CloudProviderIconProps {
   provider: CloudProviderType;
   className?: string;
-  size?: 'xs' | 'sm' | 'lg' | '1x' | '2x' | '3x';
+  size?: 'sm' | 'lg' | '1x' | '2x' | '3x';
   title?: string;
 }
 

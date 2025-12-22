@@ -14,10 +14,18 @@ export enum CloudProviderType {
   OVH = 'ovh',
 }
 
+export enum CloudResourceType {
+  VPC = 'vpc',
+  SUBNET = 'subnet',
+}
+
 export interface CloudInfo {
   provider: CloudProviderType;
   region: string;
   accountId: string;
+  resourceType?: CloudResourceType;
+  vpcId?: string;
+  subnetId?: string;
 }
 
 export interface SubnetDetails {
@@ -51,6 +59,8 @@ export interface Subnet {
   utilization: UtilizationInfo;
   createdAt: number;
   updatedAt: number;
+  parentId?: string; // ID du réseau parent
+  children?: Subnet[]; // Sous-réseaux enfants
 }
 
 export interface SubnetFilters {

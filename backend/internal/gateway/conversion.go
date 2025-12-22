@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/bananaops/ipam-bananaops/internal/repository"
 	pb "github.com/bananaops/ipam-bananaops/proto"
 )
 
@@ -31,9 +32,12 @@ type UpdateSubnetJSON struct {
 
 // CloudInfoJSON represents cloud provider information in JSON
 type CloudInfoJSON struct {
-	Provider  string `json:"provider"`
-	Region    string `json:"region"`
-	AccountID string `json:"account_id"`
+	Provider     string `json:"provider"`
+	Region       string `json:"region"`
+	AccountID    string `json:"account_id"`
+	ResourceType string `json:"resource_type,omitempty"`
+	VPCId        string `json:"vpc_id,omitempty"`
+	SubnetId     string `json:"subnet_id,omitempty"`
 }
 
 // SubnetJSON represents a subnet in JSON format
@@ -47,6 +51,7 @@ type SubnetJSON struct {
 	CloudInfo    *CloudInfoJSON     `json:"cloud_info,omitempty"`
 	Details      *SubnetDetailsJSON `json:"details,omitempty"`
 	Utilization  *UtilizationJSON   `json:"utilization,omitempty"`
+	ParentID     string             `json:"parent_id,omitempty"`
 	CreatedAt    int64              `json:"created_at"`
 	UpdatedAt    int64              `json:"updated_at"`
 }
@@ -168,9 +173,12 @@ func SubnetToJSON(subnet *pb.Subnet) *SubnetJSON {
 
 	if subnet.CloudInfo != nil && subnet.CloudInfo.Provider != "" {
 		result.CloudInfo = &CloudInfoJSON{
-			Provider:  subnet.CloudInfo.Provider,
-			Region:    subnet.CloudInfo.Region,
-			AccountID: subnet.CloudInfo.AccountId,
+			Provider:     subnet.CloudInfo.Provider,
+			Region:       subnet.CloudInfo.Region,
+			AccountID:    subnet.CloudInfo.AccountId,
+			ResourceType: "", // Will be populated from repository model
+			VPCId:        "", // Will be populated from repository model
+			SubnetId:     "", // Will be populated from repository model
 		}
 	}
 
@@ -235,4 +243,69 @@ func locationTypeToString(lt pb.LocationType) string {
 	default:
 		return "DATACENTER"
 	}
+}
+
+// Repository model conversion functions
+
+// RepositorySubnetToJSON converts a repository Subnet to JSON format
+func RepositorySubnetToJSON(subnet *repository.Subnet) *SubnetJSON {
+	if subnet == nil {
+		return nil
+	}
+
+	result := &SubnetJSON{
+		ID:           subnet.ID,
+		CIDR:         subnet.CIDR,
+		Name:         subnet.Name,
+		Location:     subnet.Location,
+		LocationType: subnet.LocationType,
+		ParentID:     subnet.ParentID,
+		CreatedAt:    subnet.CreatedAt.Unix(),
+		UpdatedAt:    subnet.UpdatedAt.Unix(),
+	}
+
+	if subnet.CloudInfo != nil && subnet.CloudInfo.Provider != "" {
+		result.CloudInfo = &CloudInfoJSON{
+			Provider:     subnet.CloudInfo.Provider,
+			Region:       subnet.CloudInfo.Region,
+			AccountID:    subnet.CloudInfo.AccountID,
+			ResourceType: subnet.CloudInfo.ResourceType,
+			VPCId:        subnet.CloudInfo.VPCId,
+			SubnetId:     subnet.CloudInfo.SubnetId,
+		}
+	}
+
+	if subnet.Details != nil {
+		result.Details = &SubnetDetailsJSON{
+			Address:     subnet.Details.Address,
+			Netmask:     subnet.Details.Netmask,
+			Wildcard:    subnet.Details.Wildcard,
+			Network:     subnet.Details.Network,
+			Type:        subnet.Details.Type,
+			Broadcast:   subnet.Details.Broadcast,
+			HostMin:     subnet.Details.HostMin,
+			HostMax:     subnet.Details.HostMax,
+			HostsPerNet: subnet.Details.HostsPerNet,
+			IsPublic:    subnet.Details.IsPublic,
+		}
+	}
+
+	if subnet.Utilization != nil {
+		result.Utilization = &UtilizationJSON{
+			TotalIPs:           subnet.Utilization.TotalIPs,
+			AllocatedIPs:       subnet.Utilization.AllocatedIPs,
+			UtilizationPercent: float32(subnet.Utilization.UtilizationPercent),
+		}
+	}
+
+	return result
+}
+
+// RepositorySubnetsToJSON converts a slice of repository Subnets to JSON format
+func RepositorySubnetsToJSON(subnets []*repository.Subnet) []*SubnetJSON {
+	result := make([]*SubnetJSON, len(subnets))
+	for i, subnet := range subnets {
+		result[i] = RepositorySubnetToJSON(subnet)
+	}
+	return result
 }

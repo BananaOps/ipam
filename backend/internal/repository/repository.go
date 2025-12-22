@@ -14,13 +14,12 @@ type SubnetRepository interface {
 	Update(ctx context.Context, subnet *pb.Subnet) error
 	Delete(ctx context.Context, id string) error
 	Close() error
-}
 
-// SubnetFilters contains filtering criteria for subnet queries
-type SubnetFilters struct {
-	LocationFilter      string
-	CloudProviderFilter string
-	SearchQuery         string
-	Page                int32
-	PageSize            int32
+	// Extended methods for cloud provider integration
+	CreateSubnet(ctx context.Context, subnet *Subnet) error
+	GetSubnetByCIDR(ctx context.Context, cidr string) (*Subnet, error)
+	GetSubnetByID(ctx context.Context, id string) (*Subnet, error)
+	UpdateSubnet(ctx context.Context, id string, subnet *Subnet) error
+	ListSubnets(ctx context.Context, filters SubnetFilters) (*SubnetList, error)
+	GetSubnetChildren(ctx context.Context, parentID string) ([]*Subnet, error)
 }

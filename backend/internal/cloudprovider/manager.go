@@ -3,152 +3,264 @@ package cloudprovider
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
+	"time"
+
+	"github.com/bananaops/ipam-bananaops/internal/cloudprovider/aws"
+	"github.com/bananaops/ipam-bananaops/internal/config"
+	"github.com/bananaops/ipam-bananaops/internal/repository"
 )
 
-// CloudProviderManager manages the registry of cloud providers
-type CloudProviderManager struct {
-	providers map[CloudProviderType]CloudProvider
-	mu        sync.RWMutex
+// Manager manages cloud provider integrations
+type Manager struct {
+	config     *config.Config
+	repository repository.SubnetRepository
+	awsClients map[string]*aws.Client
+	awsSyncs   map[string]*aws.SyncService
+	mu         sync.RWMutex
+	stopCh     chan struct{}
+	wg         sync.WaitGroup
 }
 
-// NewCloudProviderManager creates a new CloudProviderManager instance
-func NewCloudProviderManager() *CloudProviderManager {
-	return &CloudProviderManager{
-		providers: make(map[CloudProviderType]CloudProvider),
+// NewManager creates a new cloud provider manager
+func NewManager(cfg *config.Config, repo repository.SubnetRepository) *Manager {
+	return &Manager{
+		config:     cfg,
+		repository: repo,
+		awsClients: make(map[string]*aws.Client),
+		awsSyncs:   make(map[string]*aws.SyncService),
+		stopCh:     make(chan struct{}),
 	}
 }
 
-// Register adds a cloud provider to the registry
-func (m *CloudProviderManager) Register(provider CloudProvider) error {
-	if provider == nil {
-		return fmt.Errorf("cannot register nil provider")
+// Start initializes and starts cloud provider integrations
+func (m *Manager) Start(ctx context.Context) error {
+	if !m.config.CloudProviders.Enabled {
+		log.Println("Cloud providers are disabled in configuration")
+		return nil
 	}
 
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	log.Println("Starting cloud provider manager...")
 
-	providerType := provider.GetType()
-	if _, exists := m.providers[providerType]; exists {
-		return fmt.Errorf("provider %s is already registered", providerType)
+	// Initialize AWS clients
+	if err := m.initializeAWS(ctx); err != nil {
+		return fmt.Errorf("failed to initialize AWS: %w", err)
 	}
 
-	m.providers[providerType] = provider
+	// Start periodic sync
+	if err := m.startPeriodicSync(ctx); err != nil {
+		return fmt.Errorf("failed to start periodic sync: %w", err)
+	}
+
+	log.Println("Cloud provider manager started successfully")
 	return nil
 }
 
-// Unregister removes a cloud provider from the registry
-func (m *CloudProviderManager) Unregister(providerType CloudProviderType) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if _, exists := m.providers[providerType]; !exists {
-		return fmt.Errorf("%w: %s", ErrProviderNotFound, providerType)
-	}
-
-	delete(m.providers, providerType)
-	return nil
+// Stop gracefully stops the cloud provider manager
+func (m *Manager) Stop() {
+	log.Println("Stopping cloud provider manager...")
+	close(m.stopCh)
+	m.wg.Wait()
+	log.Println("Cloud provider manager stopped")
 }
 
-// GetProvider retrieves a cloud provider by type
-func (m *CloudProviderManager) GetProvider(providerType CloudProviderType) (CloudProvider, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	provider, exists := m.providers[providerType]
-	if !exists {
-		return nil, fmt.Errorf("%w: %s", ErrProviderNotFound, providerType)
+// initializeAWS initializes AWS clients for all configured regions
+func (m *Manager) initializeAWS(ctx context.Context) error {
+	if !m.config.CloudProviders.AWS.Enabled {
+		log.Println("AWS integration is disabled")
+		return nil
 	}
 
-	return provider, nil
-}
+	log.Printf("Initializing AWS integration for %d regions", len(m.config.CloudProviders.AWS.Regions))
 
-// ListProviders returns all registered provider types
-func (m *CloudProviderManager) ListProviders() []CloudProviderType {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+	for _, regionConfig := range m.config.CloudProviders.AWS.Regions {
+		awsConfig := aws.AWSConfig{
+			Region:          regionConfig.Region,
+			AccessKeyID:     regionConfig.AccessKeyID,
+			SecretAccessKey: regionConfig.SecretAccessKey,
+		}
 
-	types := make([]CloudProviderType, 0, len(m.providers))
-	for providerType := range m.providers {
-		types = append(types, providerType)
-	}
-
-	return types
-}
-
-// IsProviderRegistered checks if a provider type is registered
-func (m *CloudProviderManager) IsProviderRegistered(providerType CloudProviderType) bool {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	_, exists := m.providers[providerType]
-	return exists
-}
-
-// FetchSubnetsFromProvider fetches subnets from a specific provider with error handling
-func (m *CloudProviderManager) FetchSubnetsFromProvider(
-	ctx context.Context,
-	providerType CloudProviderType,
-	credentials CloudCredentials,
-) ([]*CloudSubnet, error) {
-	provider, err := m.GetProvider(providerType)
-	if err != nil {
-		return nil, err
-	}
-
-	// Attempt to fetch subnets with error handling
-	subnets, err := provider.FetchSubnets(ctx, credentials)
-	if err != nil {
-		// Wrap the error to provide more context
-		return nil, fmt.Errorf("%w: failed to fetch subnets from %s: %v",
-			ErrProviderUnavailable, providerType, err)
-	}
-
-	return subnets, nil
-}
-
-// FetchSubnetsFromAllProviders fetches subnets from all registered providers
-// Returns a map of provider type to subnets, and a map of provider type to errors
-func (m *CloudProviderManager) FetchSubnetsFromAllProviders(
-	ctx context.Context,
-	credentialsMap map[CloudProviderType]CloudCredentials,
-) (map[CloudProviderType][]*CloudSubnet, map[CloudProviderType]error) {
-	m.mu.RLock()
-	providerTypes := make([]CloudProviderType, 0, len(m.providers))
-	for providerType := range m.providers {
-		providerTypes = append(providerTypes, providerType)
-	}
-	m.mu.RUnlock()
-
-	results := make(map[CloudProviderType][]*CloudSubnet)
-	errors := make(map[CloudProviderType]error)
-	var wg sync.WaitGroup
-	var resultsMu sync.Mutex
-
-	for _, providerType := range providerTypes {
-		credentials, hasCredentials := credentialsMap[providerType]
-		if !hasCredentials {
-			// Skip providers without credentials
+		client, err := aws.NewClient(ctx, awsConfig)
+		if err != nil {
+			log.Printf("Failed to create AWS client for region %s: %v", regionConfig.Region, err)
 			continue
 		}
 
-		wg.Add(1)
-		go func(pt CloudProviderType, creds CloudCredentials) {
-			defer wg.Done()
+		// Validate credentials
+		if err := client.ValidateCredentials(ctx); err != nil {
+			log.Printf("Failed to validate AWS credentials for region %s: %v", regionConfig.Region, err)
+			continue
+		}
 
-			subnets, err := m.FetchSubnetsFromProvider(ctx, pt, creds)
+		m.mu.Lock()
+		m.awsClients[regionConfig.Region] = client
+		m.awsSyncs[regionConfig.Region] = aws.NewSyncService(client, m.repository)
+		m.mu.Unlock()
 
-			resultsMu.Lock()
-			defer resultsMu.Unlock()
-
-			if err != nil {
-				errors[pt] = err
-			} else {
-				results[pt] = subnets
-			}
-		}(providerType, credentials)
+		log.Printf("Successfully initialized AWS client for region: %s", regionConfig.Region)
 	}
 
-	wg.Wait()
-	return results, errors
+	if len(m.awsClients) == 0 {
+		return fmt.Errorf("no AWS clients were successfully initialized")
+	}
+
+	return nil
+}
+
+// startPeriodicSync starts the periodic synchronization process
+func (m *Manager) startPeriodicSync(ctx context.Context) error {
+	syncInterval, err := m.config.CloudProviders.GetSyncInterval()
+	if err != nil {
+		return fmt.Errorf("invalid sync interval: %w", err)
+	}
+
+	log.Printf("Starting periodic sync with interval: %v", syncInterval)
+
+	// Perform initial sync
+	if err := m.SyncAll(ctx); err != nil {
+		log.Printf("Initial sync failed: %v", err)
+	}
+
+	// Start periodic sync goroutine
+	m.wg.Add(1)
+	go func() {
+		defer m.wg.Done()
+		ticker := time.NewTicker(syncInterval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				if err := m.SyncAll(ctx); err != nil {
+					log.Printf("Periodic sync failed: %v", err)
+				}
+			case <-m.stopCh:
+				return
+			}
+		}
+	}()
+
+	return nil
+}
+
+// SyncAll synchronizes all cloud providers
+func (m *Manager) SyncAll(ctx context.Context) error {
+	log.Println("Starting full cloud provider synchronization...")
+
+	var errors []error
+
+	// Sync AWS
+	if err := m.syncAWS(ctx); err != nil {
+		errors = append(errors, fmt.Errorf("AWS sync failed: %w", err))
+	}
+
+	if len(errors) > 0 {
+		log.Printf("Synchronization completed with %d errors", len(errors))
+		return fmt.Errorf("sync errors: %v", errors)
+	}
+
+	log.Println("Full cloud provider synchronization completed successfully")
+	return nil
+}
+
+// syncAWS synchronizes all AWS regions
+func (m *Manager) syncAWS(ctx context.Context) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if len(m.awsSyncs) == 0 {
+		return nil
+	}
+
+	log.Printf("Synchronizing %d AWS regions", len(m.awsSyncs))
+
+	var errors []error
+	for region, syncService := range m.awsSyncs {
+		log.Printf("Synchronizing AWS region: %s", region)
+		if err := syncService.SyncAll(ctx); err != nil {
+			errors = append(errors, fmt.Errorf("region %s: %w", region, err))
+			continue
+		}
+		log.Printf("Successfully synchronized AWS region: %s", region)
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("AWS sync errors: %v", errors)
+	}
+
+	return nil
+}
+
+// SyncAWSRegion synchronizes a specific AWS region
+func (m *Manager) SyncAWSRegion(ctx context.Context, region string) error {
+	m.mu.RLock()
+	syncService, exists := m.awsSyncs[region]
+	m.mu.RUnlock()
+
+	if !exists {
+		return fmt.Errorf("AWS region %s is not configured", region)
+	}
+
+	log.Printf("Synchronizing AWS region: %s", region)
+	return syncService.SyncAll(ctx)
+}
+
+// UpdateUtilization updates utilization data for all cloud providers
+func (m *Manager) UpdateUtilization(ctx context.Context) error {
+	log.Println("Updating utilization data for all cloud providers...")
+
+	var errors []error
+
+	// Update AWS utilization
+	m.mu.RLock()
+	for region, syncService := range m.awsSyncs {
+		if err := syncService.UpdateUtilization(ctx); err != nil {
+			errors = append(errors, fmt.Errorf("AWS region %s: %w", region, err))
+		}
+	}
+	m.mu.RUnlock()
+
+	if len(errors) > 0 {
+		return fmt.Errorf("utilization update errors: %v", errors)
+	}
+
+	log.Println("Utilization data updated successfully")
+	return nil
+}
+
+// GetAWSClient returns the AWS client for a specific region
+func (m *Manager) GetAWSClient(region string) (*aws.Client, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	client, exists := m.awsClients[region]
+	if !exists {
+		return nil, fmt.Errorf("AWS client for region %s not found", region)
+	}
+
+	return client, nil
+}
+
+// ListAWSRegions returns all configured AWS regions
+func (m *Manager) ListAWSRegions() []string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	regions := make([]string, 0, len(m.awsClients))
+	for region := range m.awsClients {
+		regions = append(regions, region)
+	}
+
+	return regions
+}
+
+// IsEnabled returns whether cloud providers are enabled
+func (m *Manager) IsEnabled() bool {
+	return m.config.CloudProviders.Enabled
+}
+
+// IsAWSEnabled returns whether AWS integration is enabled
+func (m *Manager) IsAWSEnabled() bool {
+	return m.config.CloudProviders.AWS.Enabled
 }
