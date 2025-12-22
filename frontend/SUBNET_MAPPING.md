@@ -38,8 +38,31 @@ Accédez à la page de mapping via :
 ### Interactions
 - **Clic sur un nœud**: Affiche un panneau de détails avec toutes les informations du sous-réseau
 - **Survol**: Affiche un tooltip rapide avec les informations essentielles
+- **Molette de souris**: Zoom avant/arrière vers la position du curseur
+- **Clic et glisser**: Déplacer le diagramme (pan)
 - **Fullscreen**: Mode plein écran pour une meilleure visualisation
 - **Export**: Exporter le diagramme (fonctionnalité à venir)
+
+### Contrôles de Navigation
+
+#### Boutons de contrôle
+- **Zoom +**: Agrandir le diagramme
+- **Zoom -**: Réduire le diagramme  
+- **Reset**: Remettre le zoom à 100% et centrer
+- **Ajuster**: Ajuster automatiquement le diagramme à la taille de l'écran
+
+#### Raccourcis clavier
+- **+ / =**: Zoom avant
+- **-**: Zoom arrière
+- **0**: Reset du zoom
+- **F**: Ajuster à l'écran
+- **Esc**: Fermer le panneau de détails
+
+#### Navigation à la souris
+- **Molette**: Zoom vers la position du curseur
+- **Clic + glisser**: Déplacer le diagramme
+- **Clic sur nœud**: Sélectionner/désélectionner
+- **Survol**: Afficher tooltip
 
 ### Visualisation des Nœuds
 
