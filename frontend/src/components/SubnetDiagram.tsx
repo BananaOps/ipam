@@ -8,19 +8,20 @@ import {
   faHome,
   faExpand
 } from '@fortawesome/free-solid-svg-icons';
-import { Subnet, CloudProviderType } from '../types';
+import { Subnet, CloudProviderType, SubnetConnection, ConnectionType, ConnectionStatus } from '../types';
 import CloudProviderIcon from './CloudProviderIcon';
 import './SubnetDiagram.css';
 
 interface SubnetDiagramProps {
   subnets: Subnet[];
+  connections?: SubnetConnection[];
   viewMode: 'hierarchy' | 'network' | 'cloud';
   isFullscreen: boolean;
 }
 
 interface DiagramNode {
   id: string;
-  subnet: Subnet;
+  subnet?: Subnet; // Optionnel pour les nœuds spéciaux
   x: number;
   y: number;
   width: number;
@@ -28,12 +29,16 @@ interface DiagramNode {
   level: number;
   children: DiagramNode[];
   parent?: DiagramNode;
+  isSpecial?: boolean; // Pour les nœuds spéciaux comme Internet
+  specialType?: 'internet' | 'cloud'; // Type de nœud spécial
+  label?: string; // Label pour les nœuds spéciaux
 }
 
 interface DiagramConnection {
   from: DiagramNode;
   to: DiagramNode;
   type: 'parent-child' | 'network' | 'cloud';
+  connection?: SubnetConnection;
 }
 
 interface Transform {
@@ -93,6 +98,7 @@ function buildHierarchy(subnets: Subnet[]): DiagramNode[] {
 
   // Sort by prefix length (smaller prefix = larger network = higher in hierarchy)
   nodes.sort((a, b) => {
+    if (!a.subnet || !b.subnet) return 0;
     const aPrefix = parseInt(a.subnet.cidr.split('/')[1]);
     const bPrefix = parseInt(b.subnet.cidr.split('/')[1]);
     return aPrefix - bPrefix;
@@ -102,13 +108,16 @@ function buildHierarchy(subnets: Subnet[]): DiagramNode[] {
   const rootNodes: DiagramNode[] = [];
   
   for (const node of nodes) {
+    if (!node.subnet) continue;
+    
     let parent: DiagramNode | undefined;
     
     // Find the most specific parent (smallest network that contains this one)
     for (const potentialParent of nodes) {
-      if (potentialParent.id !== node.id && 
-          isSubnetContained(potentialParent.subnet.cidr, node.subnet.cidr)) {
-        if (!parent || 
+      if (!potentialParent.subnet || potentialParent.id === node.id) continue;
+      
+      if (isSubnetContained(potentialParent.subnet.cidr, node.subnet.cidr)) {
+        if (!parent || !parent.subnet ||
             parseInt(potentialParent.subnet.cidr.split('/')[1]) > parseInt(parent.subnet.cidr.split('/')[1])) {
           parent = potentialParent;
         }
@@ -172,6 +181,7 @@ function calculateNetworkLayout(subnets: Subnet[]): DiagramNode[] {
 
   // Sort by IP address
   nodes.sort((a, b) => {
+    if (!a.subnet || !b.subnet) return 0;
     const aInfo = parseCIDR(a.subnet.cidr);
     const bInfo = parseCIDR(b.subnet.cidr);
     return aInfo.ipNumber - bInfo.ipNumber;
@@ -208,6 +218,7 @@ function calculateCloudLayout(subnets: Subnet[]): DiagramNode[] {
   const groups: { [key: string]: DiagramNode[] } = {};
   
   nodes.forEach(node => {
+    if (!node.subnet) return;
     const provider = node.subnet.cloudInfo?.provider || 'on-premise';
     if (!groups[provider]) {
       groups[provider] = [];
@@ -232,9 +243,10 @@ function calculateCloudLayout(subnets: Subnet[]): DiagramNode[] {
   return nodes;
 }
 
-function SubnetDiagram({ subnets, viewMode, isFullscreen }: SubnetDiagramProps) {
-  const [nodes, setNodes] = useState<DiagramNode[]>([]);
-  const [connections, setConnections] = useState<DiagramConnection[]>([]);
+function SubnetDiagram({ subnets, connections = [], viewMode, isFullscreen }: SubnetDiagramProps) {
+  const [baseNodes, setBaseNodes] = useState<DiagramNode[]>([]);
+  const [allNodes, setAllNodes] = useState<DiagramNode[]>([]);
+  const [diagramConnections, setDiagramConnections] = useState<DiagramConnection[]>([]);
   const [selectedNode, setSelectedNode] = useState<DiagramNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<DiagramNode | null>(null);
   const [transform, setTransform] = useState<Transform>({ x: 0, y: 0, scale: 1 });
@@ -320,15 +332,15 @@ function SubnetDiagram({ subnets, viewMode, isFullscreen }: SubnetDiagramProps) 
   };
 
   const fitToScreen = () => {
-    if (!containerRef.current || nodes.length === 0) return;
+    if (!containerRef.current || allNodes.length === 0) return;
     
     const rect = containerRef.current.getBoundingClientRect();
     const padding = 50;
     
-    const minX = Math.min(...nodes.map(n => n.x)) - padding;
-    const maxX = Math.max(...nodes.map(n => n.x + n.width)) + padding;
-    const minY = Math.min(...nodes.map(n => n.y)) - padding;
-    const maxY = Math.max(...nodes.map(n => n.y + n.height)) + padding;
+    const minX = Math.min(...allNodes.map(n => n.x)) - padding;
+    const maxX = Math.max(...allNodes.map(n => n.x + n.width)) + padding;
+    const minY = Math.min(...allNodes.map(n => n.y)) - padding;
+    const maxY = Math.max(...allNodes.map(n => n.y + n.height)) + padding;
     
     const contentWidth = maxX - minX;
     const contentHeight = maxY - minY;
@@ -349,6 +361,7 @@ function SubnetDiagram({ subnets, viewMode, isFullscreen }: SubnetDiagramProps) 
     });
   };
 
+  // Create base nodes from subnets
   useEffect(() => {
     let calculatedNodes: DiagramNode[];
     
@@ -377,9 +390,9 @@ function SubnetDiagram({ subnets, viewMode, isFullscreen }: SubnetDiagramProps) 
         calculatedNodes = [];
     }
     
-    setNodes(calculatedNodes);
+    setBaseNodes(calculatedNodes);
     
-    // Calculate connections based on view mode
+    // Calculate hierarchy connections
     const newConnections: DiagramConnection[] = [];
     if (viewMode === 'hierarchy') {
       calculatedNodes.forEach(node => {
@@ -393,14 +406,74 @@ function SubnetDiagram({ subnets, viewMode, isFullscreen }: SubnetDiagramProps) 
       });
     }
     
-    setConnections(newConnections);
+    setDiagramConnections(newConnections);
   }, [subnets, viewMode]);
+
+  // Add special nodes and network connections
+  useEffect(() => {
+    // Calculate current maxX from base nodes
+    const currentMaxX = Math.max(...baseNodes.map(n => n.x + n.width), 500);
+    
+    // Create special nodes for Internet connections
+    const specialNodes: DiagramNode[] = [];
+    const internetConnections = connections.filter(conn => conn.targetSubnetId === 'internet');
+    
+    if (internetConnections.length > 0) {
+      const internetNode: DiagramNode = {
+        id: 'internet',
+        x: currentMaxX + 50,
+        y: 100,
+        width: 120,
+        height: 80,
+        level: 0,
+        children: [],
+        isSpecial: true,
+        specialType: 'internet',
+        label: 'Internet'
+      };
+      specialNodes.push(internetNode);
+    }
+
+    // Combine base nodes with special nodes
+    const allNodesArray = [...baseNodes, ...specialNodes];
+    setAllNodes(allNodesArray);
+
+    // Create network connections
+    const networkConnections: DiagramConnection[] = connections.map(conn => {
+      const sourceNode = baseNodes.find(n => n.id === conn.sourceSubnetId);
+      let targetNode: DiagramNode | undefined;
+      
+      if (conn.targetSubnetId === 'internet') {
+        targetNode = specialNodes.find(n => n.id === 'internet');
+      } else {
+        targetNode = baseNodes.find(n => n.id === conn.targetSubnetId);
+      }
+      
+      if (sourceNode && targetNode) {
+        return {
+          from: sourceNode,
+          to: targetNode,
+          type: 'network' as const,
+          connection: conn
+        };
+      }
+      return null;
+    }).filter(Boolean) as DiagramConnection[];
+
+    // Update connections with network connections
+    setDiagramConnections(prev => [
+      ...prev.filter(c => c.type !== 'network'),
+      ...networkConnections
+    ]);
+  }, [baseNodes, connections]);
 
   const handleNodeClick = (node: DiagramNode) => {
     setSelectedNode(selectedNode?.id === node.id ? null : node);
   };
 
-  const getNodeColor = (subnet: Subnet): string => {
+  const getNodeColor = (subnet?: Subnet): string => {
+    if (!subnet) return '#6B7280';
+    
     if (subnet.cloudInfo?.provider) {
       switch (subnet.cloudInfo.provider) {
         case CloudProviderType.AWS: return '#FF9900';
@@ -421,9 +494,132 @@ function SubnetDiagram({ subnets, viewMode, isFullscreen }: SubnetDiagramProps) 
     return '#6B7280';
   };
 
+  const getConnectionStyle = (connection: DiagramConnection) => {
+    if (connection.type === 'parent-child') {
+      return {
+        stroke: '#6B7280',
+        strokeWidth: '2',
+        strokeDasharray: '0',
+        opacity: 0.6,
+        markerEnd: 'url(#arrowhead-parent)'
+      };
+    }
+    
+    if (connection.type === 'network' && connection.connection) {
+      const conn = connection.connection;
+      let color = '#3B82F6'; // Default blue
+      let strokeWidth = '4'; // Plus épais pour plus de visibilité
+      
+      // Color based on connection type
+      switch (conn.connectionType) {
+        case ConnectionType.VPN_SITE_TO_SITE:
+          color = '#8B5CF6'; // Purple
+          break;
+        case ConnectionType.OPENVPN_CLIENT:
+          color = '#06B6D4'; // Cyan
+          break;
+        case ConnectionType.NAT_GATEWAY:
+          color = '#10B981'; // Green
+          break;
+        case ConnectionType.INTERNET_GATEWAY:
+          color = '#F59E0B'; // Orange
+          strokeWidth = '5'; // Plus épais pour Internet
+          break;
+        case ConnectionType.PEERING:
+          color = '#EC4899'; // Pink
+          break;
+        case ConnectionType.TRANSIT_GATEWAY:
+          color = '#6366F1'; // Indigo
+          strokeWidth = '5'; // Plus épais pour Transit Gateway
+          break;
+        case ConnectionType.DIRECT_CONNECT:
+          color = '#7C3AED'; // Violet foncé
+          strokeWidth = '5';
+          break;
+        case ConnectionType.EXPRESSROUTE:
+          color = '#0EA5E9'; // Bleu Azure
+          strokeWidth = '5';
+          break;
+        case ConnectionType.CLOUD_INTERCONNECT:
+          color = '#059669'; // Vert GCP
+          strokeWidth = '5';
+          break;
+        default:
+          color = '#3B82F6'; // Blue
+      }
+      
+      // Opacity based on status
+      let opacity = 1;
+      let dashArray = '0';
+      switch (conn.status) {
+        case ConnectionStatus.ACTIVE:
+          opacity = 1;
+          break;
+        case ConnectionStatus.INACTIVE:
+          opacity = 0.4;
+          dashArray = '10,5';
+          break;
+        case ConnectionStatus.PENDING:
+          opacity = 0.7;
+          dashArray = '8,4';
+          break;
+        case ConnectionStatus.ERROR:
+          opacity = 0.9;
+          color = '#EF4444'; // Red for errors
+          dashArray = '3,3';
+          break;
+      }
+      
+      return {
+        stroke: color,
+        strokeWidth,
+        strokeDasharray: dashArray,
+        opacity,
+        markerEnd: 'url(#arrowhead-network)'
+      };
+    }
+    
+    return {
+      stroke: '#6B7280',
+      strokeWidth: '2',
+      strokeDasharray: '5,5',
+      opacity: 0.5
+    };
+  };
+
+  // Get connection type label for display
+  const getConnectionTypeLabel = (connectionType: ConnectionType): string => {
+    switch (connectionType) {
+      case ConnectionType.VPN_SITE_TO_SITE:
+        return 'VPN S2S';
+      case ConnectionType.OPENVPN_CLIENT:
+        return 'OpenVPN';
+      case ConnectionType.NAT_GATEWAY:
+        return 'NAT GW';
+      case ConnectionType.INTERNET_GATEWAY:
+        return 'Internet';
+      case ConnectionType.PEERING:
+        return 'Peering';
+      case ConnectionType.TRANSIT_GATEWAY:
+        return 'Transit GW';
+      case ConnectionType.DIRECT_CONNECT:
+        return 'Direct Connect';
+      case ConnectionType.EXPRESSROUTE:
+        return 'ExpressRoute';
+      case ConnectionType.CLOUD_INTERCONNECT:
+        return 'Cloud Interconnect';
+      case ConnectionType.LOAD_BALANCER:
+        return 'Load Balancer';
+      case ConnectionType.FIREWALL:
+        return 'Firewall';
+      default:
+        return 'Custom';
+    }
+  };
+
   // Calculate SVG dimensions
-  const maxX = Math.max(...nodes.map(n => n.x + n.width), 500);
-  const maxY = Math.max(...nodes.map(n => n.y + n.height), 400);
+  const maxX = Math.max(...allNodes.map(n => n.x + n.width), 500);
+  const maxY = Math.max(...allNodes.map(n => n.y + n.height), 400);
 
   // Reset zoom when view mode changes
   useEffect(() => {
@@ -432,10 +628,10 @@ function SubnetDiagram({ subnets, viewMode, isFullscreen }: SubnetDiagramProps) 
 
   // Fit to screen when nodes change
   useEffect(() => {
-    if (nodes.length > 0) {
+    if (allNodes.length > 0) {
       setTimeout(fitToScreen, 100);
     }
-  }, [nodes]);
+  }, [allNodes]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -493,104 +689,247 @@ function SubnetDiagram({ subnets, viewMode, isFullscreen }: SubnetDiagramProps) 
           transformOrigin: '0 0'
         }}
       >
+        {/* Définitions des marqueurs de flèches */}
+        <defs>
+          <marker
+            id="arrowhead-network"
+            markerWidth="10"
+            markerHeight="7"
+            refX="9"
+            refY="3.5"
+            orient="auto"
+          >
+            <polygon
+              points="0 0, 10 3.5, 0 7"
+              fill="currentColor"
+            />
+          </marker>
+          <marker
+            id="arrowhead-parent"
+            markerWidth="8"
+            markerHeight="6"
+            refX="7"
+            refY="3"
+            orient="auto"
+          >
+            <polygon
+              points="0 0, 8 3, 0 6"
+              fill="#6B7280"
+            />
+          </marker>
+        </defs>
+
         {/* Connections */}
-        {connections.map((connection, index) => (
-          <line
-            key={index}
-            x1={connection.from.x + connection.from.width / 2}
-            y1={connection.from.y + connection.from.height}
-            x2={connection.to.x + connection.to.width / 2}
-            y2={connection.to.y}
-            stroke="#6B7280"
-            strokeWidth="2"
-            strokeDasharray={connection.type === 'parent-child' ? '0' : '5,5'}
-            className="connection-line"
-          />
-        ))}
+        {diagramConnections.map((connection, index) => {
+          const style = getConnectionStyle(connection);
+          const midX = (connection.from.x + connection.from.width / 2 + connection.to.x + connection.to.width / 2) / 2;
+          const midY = (connection.from.y + connection.from.height + connection.to.y) / 2;
+          
+          return (
+            <g key={index}>
+              {/* Ligne de connexion */}
+              <line
+                x1={connection.from.x + connection.from.width / 2}
+                y1={connection.from.y + connection.from.height}
+                x2={connection.to.x + connection.to.width / 2}
+                y2={connection.to.y}
+                stroke={style.stroke}
+                strokeWidth={style.strokeWidth}
+                strokeDasharray={style.strokeDasharray}
+                opacity={style.opacity}
+                markerEnd={style.markerEnd}
+                className="connection-line"
+                style={{ color: style.stroke }}
+              />
+              
+              {/* Label de connexion pour les connexions réseau */}
+              {connection.type === 'network' && connection.connection && (
+                <g>
+                  {/* Fond du label */}
+                  <rect
+                    x={midX - 35}
+                    y={midY - 12}
+                    width="70"
+                    height="24"
+                    fill="white"
+                    stroke={style.stroke}
+                    strokeWidth="1"
+                    rx="12"
+                    opacity="0.95"
+                    className="connection-label-bg"
+                  />
+                  {/* Texte du type de connexion */}
+                  <text
+                    x={midX}
+                    y={midY - 2}
+                    fontSize="9"
+                    fontWeight="600"
+                    fill={style.stroke}
+                    textAnchor="middle"
+                    className="connection-type-label"
+                  >
+                    {getConnectionTypeLabel(connection.connection.connectionType as ConnectionType)}
+                  </text>
+                  {/* Nom de la connexion */}
+                  <text
+                    x={midX}
+                    y={midY + 8}
+                    fontSize="7"
+                    fill="#6B7280"
+                    textAnchor="middle"
+                    className="connection-name-label"
+                  >
+                    {connection.connection.name.length > 12 
+                      ? connection.connection.name.substring(0, 12) + '...' 
+                      : connection.connection.name}
+                  </text>
+                </g>
+              )}
+            </g>
+          );
+        })}
 
         {/* Nodes */}
-        {nodes.map((node) => (
+        {allNodes.map((node) => (
           <g key={node.id} className="diagram-node">
-            {/* Node background */}
-            <rect
-              x={node.x}
-              y={node.y}
-              width={node.width}
-              height={node.height}
-              fill={selectedNode?.id === node.id ? '#3B82F6' : '#FFFFFF'}
-              stroke={getNodeColor(node.subnet)}
-              strokeWidth="2"
-              rx="8"
-              className="node-background"
-              onClick={() => handleNodeClick(node)}
-              onMouseEnter={() => setHoveredNode(node)}
-              onMouseLeave={() => setHoveredNode(null)}
-            />
-
-            {/* Utilization bar */}
-            <rect
-              x={node.x + 5}
-              y={node.y + 5}
-              width={(node.width - 10) * (node.subnet.utilization.utilizationPercent / 100)}
-              height="4"
-              fill={getUtilizationColor(node.subnet.utilization.utilizationPercent)}
-              rx="2"
-            />
-
-            {/* Node content */}
-            <text
-              x={node.x + 10}
-              y={node.y + 25}
-              fontSize="14"
-              fontWeight="bold"
-              fill={selectedNode?.id === node.id ? '#FFFFFF' : '#1F2937'}
-            >
-              {node.subnet.cidr}
-            </text>
-            
-            <text
-              x={node.x + 10}
-              y={node.y + 40}
-              fontSize="12"
-              fill={selectedNode?.id === node.id ? '#E5E7EB' : '#6B7280'}
-            >
-              {node.subnet.name}
-            </text>
-
-            <text
-              x={node.x + 10}
-              y={node.y + 55}
-              fontSize="10"
-              fill={selectedNode?.id === node.id ? '#E5E7EB' : '#9CA3AF'}
-            >
-              {node.subnet.location}
-            </text>
-
-            {/* Cloud provider icon */}
-            {node.subnet.cloudInfo?.provider && (
-              <foreignObject
-                x={node.x + node.width - 30}
-                y={node.y + 10}
-                width="20"
-                height="20"
-              >
-                <CloudProviderIcon
-                  provider={node.subnet.cloudInfo.provider}
-                  size="sm"
+            {node.isSpecial ? (
+              // Rendu des nœuds spéciaux (Internet, etc.)
+              <>
+                {/* Fond du nœud spécial */}
+                <rect
+                  x={node.x}
+                  y={node.y}
+                  width={node.width}
+                  height={node.height}
+                  fill={selectedNode?.id === node.id ? '#3B82F6' : '#F0F9FF'}
+                  stroke={node.specialType === 'internet' ? '#0EA5E9' : '#6B7280'}
+                  strokeWidth="3"
+                  rx="12"
+                  className="special-node-background"
+                  onClick={() => handleNodeClick(node)}
+                  onMouseEnter={() => setHoveredNode(node)}
+                  onMouseLeave={() => setHoveredNode(null)}
                 />
-              </foreignObject>
-            )}
 
-            {/* Utilization percentage */}
-            <text
-              x={node.x + node.width - 10}
-              y={node.y + node.height - 10}
-              fontSize="10"
-              textAnchor="end"
-              fill={selectedNode?.id === node.id ? '#E5E7EB' : '#6B7280'}
-            >
-              {node.subnet.utilization.utilizationPercent.toFixed(1)}%
-            </text>
+                {/* Icône de nuage pour Internet */}
+                {node.specialType === 'internet' && (
+                  <g>
+                    {/* Icône de nuage SVG */}
+                    <path
+                      d={`M${node.x + 20} ${node.y + 25} 
+                         C${node.x + 15} ${node.y + 20}, ${node.x + 25} ${node.y + 15}, ${node.x + 35} ${node.y + 20}
+                         C${node.x + 40} ${node.y + 15}, ${node.x + 50} ${node.y + 15}, ${node.x + 55} ${node.y + 20}
+                         C${node.x + 60} ${node.y + 25}, ${node.x + 55} ${node.y + 35}, ${node.x + 50} ${node.y + 35}
+                         L${node.x + 25} ${node.y + 35}
+                         C${node.x + 20} ${node.y + 35}, ${node.x + 15} ${node.y + 30}, ${node.x + 20} ${node.y + 25} Z`}
+                      fill="#0EA5E9"
+                      opacity="0.8"
+                    />
+                    {/* Petits nuages décoratifs */}
+                    <circle cx={node.x + 30} cy={node.y + 30} r="3" fill="#0EA5E9" opacity="0.6" />
+                    <circle cx={node.x + 45} cy={node.y + 28} r="2" fill="#0EA5E9" opacity="0.6" />
+                  </g>
+                )}
+
+                {/* Label du nœud spécial */}
+                <text
+                  x={node.x + node.width / 2}
+                  y={node.y + 55}
+                  fontSize="14"
+                  fontWeight="bold"
+                  fill={selectedNode?.id === node.id ? '#FFFFFF' : '#0EA5E9'}
+                  textAnchor="middle"
+                >
+                  {node.label}
+                </text>
+              </>
+            ) : (
+              // Rendu des nœuds de sous-réseaux normaux
+              node.subnet && (
+                <>
+                  {/* Node background */}
+                  <rect
+                    x={node.x}
+                    y={node.y}
+                    width={node.width}
+                    height={node.height}
+                    fill={selectedNode?.id === node.id ? '#3B82F6' : '#FFFFFF'}
+                    stroke={getNodeColor(node.subnet)}
+                    strokeWidth="2"
+                    rx="8"
+                    className="node-background"
+                    onClick={() => handleNodeClick(node)}
+                    onMouseEnter={() => setHoveredNode(node)}
+                    onMouseLeave={() => setHoveredNode(null)}
+                  />
+
+                  {/* Utilization bar */}
+                  <rect
+                    x={node.x + 5}
+                    y={node.y + 5}
+                    width={(node.width - 10) * (node.subnet.utilization.utilizationPercent / 100)}
+                    height="4"
+                    fill={getUtilizationColor(node.subnet.utilization.utilizationPercent)}
+                    rx="2"
+                  />
+
+                  {/* Node content */}
+                  <text
+                    x={node.x + 10}
+                    y={node.y + 25}
+                    fontSize="14"
+                    fontWeight="bold"
+                    fill={selectedNode?.id === node.id ? '#FFFFFF' : '#1F2937'}
+                  >
+                    {node.subnet.cidr}
+                  </text>
+                  
+                  <text
+                    x={node.x + 10}
+                    y={node.y + 40}
+                    fontSize="12"
+                    fill={selectedNode?.id === node.id ? '#E5E7EB' : '#6B7280'}
+                  >
+                    {node.subnet.name}
+                  </text>
+
+                  <text
+                    x={node.x + 10}
+                    y={node.y + 55}
+                    fontSize="10"
+                    fill={selectedNode?.id === node.id ? '#E5E7EB' : '#9CA3AF'}
+                  >
+                    {node.subnet.location}
+                  </text>
+
+                  {/* Cloud provider icon */}
+                  {node.subnet.cloudInfo?.provider && (
+                    <foreignObject
+                      x={node.x + node.width - 30}
+                      y={node.y + 10}
+                      width="20"
+                      height="20"
+                    >
+                      <CloudProviderIcon
+                        provider={node.subnet.cloudInfo.provider}
+                        size="sm"
+                      />
+                    </foreignObject>
+                  )}
+
+                  {/* Utilization percentage */}
+                  <text
+                    x={node.x + node.width - 10}
+                    y={node.y + node.height - 10}
+                    fontSize="10"
+                    textAnchor="end"
+                    fill={selectedNode?.id === node.id ? '#E5E7EB' : '#6B7280'}
+                  >
+                    {node.subnet.utilization.utilizationPercent.toFixed(1)}%
+                  </text>
+                </>
+              )
+            )}
           </g>
         ))}
       </svg>
@@ -641,6 +980,39 @@ function SubnetDiagram({ subnets, viewMode, isFullscreen }: SubnetDiagramProps) 
         <div className="shortcut-item">Esc : Fermer détails</div>
       </div>
 
+      {/* Connection legend */}
+      {diagramConnections.some(c => c.type === 'network') && (
+        <div className="connection-legend">
+          <div className="legend-title">Types de connexions:</div>
+          <div className="legend-items">
+            <div className="legend-item">
+              <div className="legend-line" style={{ backgroundColor: '#8B5CF6' }}></div>
+              <span>VPN Site-à-Site</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-line" style={{ backgroundColor: '#06B6D4' }}></div>
+              <span>OpenVPN Client</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-line" style={{ backgroundColor: '#10B981' }}></div>
+              <span>NAT Gateway</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-line" style={{ backgroundColor: '#F59E0B' }}></div>
+              <span>Internet Gateway</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-line" style={{ backgroundColor: '#EC4899' }}></div>
+              <span>Peering</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-line" style={{ backgroundColor: '#6366F1' }}></div>
+              <span>Transit Gateway</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Node details panel */}
       {selectedNode && (
         <div className="node-details-panel">
@@ -656,77 +1028,99 @@ function SubnetDiagram({ subnets, viewMode, isFullscreen }: SubnetDiagramProps) 
           </div>
           
           <div className="panel-content">
-            <div className="detail-row">
-              <label>CIDR:</label>
-              <span>{selectedNode.subnet.cidr}</span>
-            </div>
-            
-            <div className="detail-row">
-              <label>Name:</label>
-              <span>{selectedNode.subnet.name}</span>
-            </div>
-            
-            <div className="detail-row">
-              <label>Location:</label>
-              <span>{selectedNode.subnet.location}</span>
-            </div>
-            
-            <div className="detail-row">
-              <label>Type:</label>
-              <span>{selectedNode.subnet.locationType}</span>
-            </div>
-            
-            {selectedNode.subnet.cloudInfo && (
+            {selectedNode.isSpecial ? (
+              // Panneau pour les nœuds spéciaux
               <>
                 <div className="detail-row">
-                  <label>Provider:</label>
-                  <span className="provider-info">
-                    <CloudProviderIcon
-                      provider={selectedNode.subnet.cloudInfo.provider}
-                      size="sm"
-                    />
-                    {selectedNode.subnet.cloudInfo.provider.toUpperCase()}
+                  <label>Type:</label>
+                  <span>{selectedNode.label}</span>
+                </div>
+                
+                <div className="detail-row">
+                  <label>Description:</label>
+                  <span>
+                    {selectedNode.specialType === 'internet' 
+                      ? 'Connexion vers Internet' 
+                      : 'Nœud spécial'}
+                  </span>
+                </div>
+              </>
+            ) : selectedNode.subnet ? (
+              // Panneau pour les sous-réseaux normaux
+              <>
+                <div className="detail-row">
+                  <label>CIDR:</label>
+                  <span>{selectedNode.subnet.cidr}</span>
+                </div>
+                
+                <div className="detail-row">
+                  <label>Name:</label>
+                  <span>{selectedNode.subnet.name}</span>
+                </div>
+                
+                <div className="detail-row">
+                  <label>Location:</label>
+                  <span>{selectedNode.subnet.location}</span>
+                </div>
+                
+                <div className="detail-row">
+                  <label>Type:</label>
+                  <span>{selectedNode.subnet.locationType}</span>
+                </div>
+                
+                {selectedNode.subnet.cloudInfo && (
+                  <>
+                    <div className="detail-row">
+                      <label>Provider:</label>
+                      <span className="provider-info">
+                        <CloudProviderIcon
+                          provider={selectedNode.subnet.cloudInfo.provider}
+                          size="sm"
+                        />
+                        {selectedNode.subnet.cloudInfo.provider.toUpperCase()}
+                      </span>
+                    </div>
+                    
+                    <div className="detail-row">
+                      <label>Region:</label>
+                      <span>{selectedNode.subnet.cloudInfo.region}</span>
+                    </div>
+                    
+                    <div className="detail-row">
+                      <label>Account:</label>
+                      <span>{selectedNode.subnet.cloudInfo.accountId}</span>
+                    </div>
+                  </>
+                )}
+                
+                <div className="detail-row">
+                  <label>Utilization:</label>
+                  <span>
+                    {selectedNode.subnet.utilization.allocatedIps} / {selectedNode.subnet.utilization.totalIps} IPs
+                    ({selectedNode.subnet.utilization.utilizationPercent.toFixed(1)}%)
                   </span>
                 </div>
                 
-                <div className="detail-row">
-                  <label>Region:</label>
-                  <span>{selectedNode.subnet.cloudInfo.region}</span>
-                </div>
-                
-                <div className="detail-row">
-                  <label>Account:</label>
-                  <span>{selectedNode.subnet.cloudInfo.accountId}</span>
-                </div>
+                {selectedNode.subnet.details && (
+                  <>
+                    <div className="detail-row">
+                      <label>Network:</label>
+                      <span>{selectedNode.subnet.details.network}</span>
+                    </div>
+                    
+                    <div className="detail-row">
+                      <label>Broadcast:</label>
+                      <span>{selectedNode.subnet.details.broadcast}</span>
+                    </div>
+                    
+                    <div className="detail-row">
+                      <label>Host Range:</label>
+                      <span>{selectedNode.subnet.details.hostMin} - {selectedNode.subnet.details.hostMax}</span>
+                    </div>
+                  </>
+                )}
               </>
-            )}
-            
-            <div className="detail-row">
-              <label>Utilization:</label>
-              <span>
-                {selectedNode.subnet.utilization.allocatedIps} / {selectedNode.subnet.utilization.totalIps} IPs
-                ({selectedNode.subnet.utilization.utilizationPercent.toFixed(1)}%)
-              </span>
-            </div>
-            
-            {selectedNode.subnet.details && (
-              <>
-                <div className="detail-row">
-                  <label>Network:</label>
-                  <span>{selectedNode.subnet.details.network}</span>
-                </div>
-                
-                <div className="detail-row">
-                  <label>Broadcast:</label>
-                  <span>{selectedNode.subnet.details.broadcast}</span>
-                </div>
-                
-                <div className="detail-row">
-                  <label>Host Range:</label>
-                  <span>{selectedNode.subnet.details.hostMin} - {selectedNode.subnet.details.hostMax}</span>
-                </div>
-              </>
-            )}
+            ) : null}
           </div>
         </div>
       )}
@@ -740,9 +1134,18 @@ function SubnetDiagram({ subnets, viewMode, isFullscreen }: SubnetDiagramProps) 
             top: tooltipPosition.y - 10,
           }}
         >
-          <strong>{hoveredNode.subnet.name}</strong><br />
-          {hoveredNode.subnet.cidr}<br />
-          {hoveredNode.subnet.utilization.utilizationPercent.toFixed(1)}% used
+          {hoveredNode.isSpecial ? (
+            <>
+              <strong>{hoveredNode.label}</strong><br />
+              {hoveredNode.specialType === 'internet' ? 'Connexion vers Internet' : 'Nœud spécial'}
+            </>
+          ) : hoveredNode.subnet ? (
+            <>
+              <strong>{hoveredNode.subnet.name}</strong><br />
+              {hoveredNode.subnet.cidr}<br />
+              {hoveredNode.subnet.utilization.utilizationPercent.toFixed(1)}% used
+            </>
+          ) : null}
         </div>
       )}
     </div>

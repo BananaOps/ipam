@@ -3,7 +3,7 @@
 
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faNetworkWired, faProjectDiagram } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faNetworkWired, faProjectDiagram, faLink } from '@fortawesome/free-solid-svg-icons';
 import { ThemeToggle } from './ThemeToggle';
 import Logo from './Logo';
 import Footer from './Footer';
@@ -39,6 +39,13 @@ function Layout() {
             >
               <FontAwesomeIcon icon={faProjectDiagram} />
               <span>Mapping</span>
+            </Link>
+            <Link 
+              to="/subnets/connections" 
+              className={`nav-link ${isActive('/subnets/connections') ? 'active' : ''}`}
+            >
+              <FontAwesomeIcon icon={faLink} />
+              <span>Connexions</span>
             </Link>
             <Link 
               to="/subnets/create" 

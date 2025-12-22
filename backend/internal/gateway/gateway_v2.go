@@ -46,6 +46,13 @@ func (g *Gateway) setupRoutes() {
 	api.HandleFunc("/subnets/{id}", g.handleDeleteSubnet).Methods(http.MethodDelete, http.MethodOptions)
 	api.HandleFunc("/subnets/{id}/children", g.handleGetSubnetChildren).Methods(http.MethodGet, http.MethodOptions)
 
+	// Connection endpoints
+	api.HandleFunc("/connections", g.handleCreateConnection).Methods(http.MethodPost, http.MethodOptions)
+	api.HandleFunc("/connections", g.handleListConnections).Methods(http.MethodGet, http.MethodOptions)
+	api.HandleFunc("/connections/{id}", g.handleGetConnection).Methods(http.MethodGet, http.MethodOptions)
+	api.HandleFunc("/connections/{id}", g.handleUpdateConnection).Methods(http.MethodPut, http.MethodOptions)
+	api.HandleFunc("/connections/{id}", g.handleDeleteConnection).Methods(http.MethodDelete, http.MethodOptions)
+
 	// Cloud provider endpoints
 	api.HandleFunc("/cloud/sync", g.HandleCloudSync).Methods(http.MethodPost, http.MethodOptions)
 	api.HandleFunc("/cloud/status", g.HandleCloudStatus).Methods(http.MethodGet, http.MethodOptions)
@@ -514,4 +521,226 @@ func (g *Gateway) handleCreateSubnetRepository(w http.ResponseWriter, r *http.Re
 	// Convert to JSON response
 	jsonSubnet := RepositorySubnetToJSON(createdSubnet)
 	g.writeJSON(w, http.StatusCreated, jsonSubnet)
+}
+
+// Connection handlers
+
+// handleCreateConnection handles POST /api/v1/connections
+func (g *Gateway) handleCreateConnection(w http.ResponseWriter, r *http.Request) {
+	log.Println("[CreateConnection] Received request")
+
+	// Read request body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("[CreateConnection] Failed to read body: %v", err)
+		g.writeErrorResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "Failed to read request body", err)
+		return
+	}
+	defer r.Body.Close()
+
+	log.Printf("[CreateConnection] Request body: %s", string(body))
+
+	// Validate request body is not empty
+	if len(body) == 0 {
+		g.writeErrorResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "Request body is required", nil)
+		return
+	}
+
+	// Parse JSON directly to connection data
+	var connectionData CreateConnectionJSON
+	if err := json.Unmarshal(body, &connectionData); err != nil {
+		g.writeErrorResponse(w, http.StatusBadRequest, "INVALID_MESSAGE_FORMAT", err.Error(), err)
+		return
+	}
+
+	// Validate required fields
+	if connectionData.SourceSubnetID == "" {
+		g.writeErrorResponse(w, http.StatusBadRequest, "MISSING_FIELD", "Source subnet ID is required", nil)
+		return
+	}
+	if connectionData.TargetSubnetID == "" {
+		g.writeErrorResponse(w, http.StatusBadRequest, "MISSING_FIELD", "Target subnet ID is required", nil)
+		return
+	}
+	if connectionData.Name == "" {
+		g.writeErrorResponse(w, http.StatusBadRequest, "MISSING_FIELD", "Connection name is required", nil)
+		return
+	}
+	if connectionData.ConnectionType == "" {
+		g.writeErrorResponse(w, http.StatusBadRequest, "MISSING_FIELD", "Connection type is required", nil)
+		return
+	}
+
+	// Create repository connection model
+	connection := &repository.Connection{
+		ID:             uuid.New().String(),
+		SourceSubnetID: connectionData.SourceSubnetID,
+		TargetSubnetID: connectionData.TargetSubnetID,
+		ConnectionType: connectionData.ConnectionType,
+		Status:         "active", // Default status
+		Name:           connectionData.Name,
+		Description:    connectionData.Description,
+		Bandwidth:      connectionData.Bandwidth,
+		Latency:        connectionData.Latency,
+		Cost:           connectionData.Cost,
+		Metadata:       connectionData.Metadata,
+	}
+
+	log.Printf("[CreateConnection] Repository model: %+v", connection)
+
+	// Create connection using service layer
+	ctx := r.Context()
+	err = g.serviceLayer.CreateConnection(ctx, connection)
+	if err != nil {
+		log.Printf("[CreateConnection] Service layer error: %v", err)
+		g.writeErrorResponse(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error(), err)
+		return
+	}
+
+	log.Printf("[CreateConnection] Successfully created connection: %s", connection.ID)
+
+	// Convert to JSON response
+	jsonConnection := RepositoryConnectionToJSON(connection)
+	g.writeJSON(w, http.StatusCreated, jsonConnection)
+}
+
+// handleListConnections handles GET /api/v1/connections
+func (g *Gateway) handleListConnections(w http.ResponseWriter, r *http.Request) {
+	// Parse query parameters
+	query := r.URL.Query()
+
+	filters := repository.ConnectionFilters{
+		SourceSubnetID: query.Get("source_subnet_id"),
+		TargetSubnetID: query.Get("target_subnet_id"),
+		ConnectionType: query.Get("connection_type"),
+		Status:         query.Get("status"),
+		Page:           parseIntParam(query.Get("page"), 0),
+		PageSize:       parseIntParam(query.Get("page_size"), 50),
+	}
+
+	ctx := r.Context()
+
+	// Use service layer to get connections
+	result, err := g.serviceLayer.ListConnections(ctx, filters)
+	if err != nil {
+		g.writeErrorResponse(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error(), err)
+		return
+	}
+
+	// Convert repository models to JSON
+	jsonConnections := RepositoryConnectionsToJSON(result.Connections)
+
+	jsonResp := &ListConnectionsResponseJSON{
+		Connections: jsonConnections,
+		TotalCount:  result.TotalCount,
+	}
+	g.writeJSON(w, http.StatusOK, jsonResp)
+}
+
+// handleGetConnection handles GET /api/v1/connections/{id}
+func (g *Gateway) handleGetConnection(w http.ResponseWriter, r *http.Request) {
+	// Extract connection ID from URL
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	if id == "" {
+		g.writeErrorResponse(w, http.StatusBadRequest, "MISSING_FIELD", "Connection ID is required", nil)
+		return
+	}
+
+	ctx := r.Context()
+	connection, err := g.serviceLayer.GetConnection(ctx, id)
+	if err != nil {
+		g.writeErrorResponse(w, http.StatusNotFound, "CONNECTION_NOT_FOUND", err.Error(), err)
+		return
+	}
+
+	// Convert to JSON response
+	jsonConnection := RepositoryConnectionToJSON(connection)
+	g.writeJSON(w, http.StatusOK, jsonConnection)
+}
+
+// handleUpdateConnection handles PUT /api/v1/connections/{id}
+func (g *Gateway) handleUpdateConnection(w http.ResponseWriter, r *http.Request) {
+	// Extract connection ID from URL
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	if id == "" {
+		g.writeErrorResponse(w, http.StatusBadRequest, "MISSING_FIELD", "Connection ID is required", nil)
+		return
+	}
+
+	// Read request body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		g.writeErrorResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "Failed to read request body", err)
+		return
+	}
+	defer r.Body.Close()
+
+	// Validate request body is not empty
+	if len(body) == 0 {
+		g.writeErrorResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "Request body is required", nil)
+		return
+	}
+
+	// Parse JSON to update data
+	var updateData UpdateConnectionJSON
+	if err := json.Unmarshal(body, &updateData); err != nil {
+		g.writeErrorResponse(w, http.StatusBadRequest, "INVALID_MESSAGE_FORMAT", err.Error(), err)
+		return
+	}
+
+	// Create repository connection model with update data
+	connection := &repository.Connection{
+		Name:           updateData.Name,
+		Description:    updateData.Description,
+		ConnectionType: updateData.ConnectionType,
+		Status:         updateData.Status,
+		Bandwidth:      updateData.Bandwidth,
+		Latency:        updateData.Latency,
+		Cost:           updateData.Cost,
+		Metadata:       updateData.Metadata,
+	}
+
+	ctx := r.Context()
+	err = g.serviceLayer.UpdateConnection(ctx, id, connection)
+	if err != nil {
+		g.writeErrorResponse(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error(), err)
+		return
+	}
+
+	// Retrieve updated connection
+	updatedConnection, err := g.serviceLayer.GetConnection(ctx, id)
+	if err != nil {
+		g.writeErrorResponse(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to retrieve updated connection", err)
+		return
+	}
+
+	// Convert to JSON response
+	jsonConnection := RepositoryConnectionToJSON(updatedConnection)
+	g.writeJSON(w, http.StatusOK, jsonConnection)
+}
+
+// handleDeleteConnection handles DELETE /api/v1/connections/{id}
+func (g *Gateway) handleDeleteConnection(w http.ResponseWriter, r *http.Request) {
+	// Extract connection ID from URL
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	if id == "" {
+		g.writeErrorResponse(w, http.StatusBadRequest, "MISSING_FIELD", "Connection ID is required", nil)
+		return
+	}
+
+	ctx := r.Context()
+	err := g.serviceLayer.DeleteConnection(ctx, id)
+	if err != nil {
+		g.writeErrorResponse(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error(), err)
+		return
+	}
+
+	// Return success response
+	g.writeJSON(w, http.StatusOK, &DeleteResponseJSON{Success: true})
 }

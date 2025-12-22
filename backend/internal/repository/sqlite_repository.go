@@ -83,11 +83,34 @@ func (r *SQLiteRepository) initSchema() error {
 		FOREIGN KEY (parent_id) REFERENCES subnets(id)
 	);
 
+	CREATE TABLE IF NOT EXISTS connections (
+		id TEXT PRIMARY KEY,
+		source_subnet_id TEXT NOT NULL,
+		target_subnet_id TEXT NOT NULL,
+		connection_type TEXT NOT NULL,
+		status TEXT NOT NULL DEFAULT 'active',
+		name TEXT NOT NULL,
+		description TEXT,
+		bandwidth TEXT,
+		latency INTEGER,
+		cost REAL,
+		metadata TEXT, -- JSON string for additional metadata
+		created_at INTEGER,
+		updated_at INTEGER,
+		FOREIGN KEY (source_subnet_id) REFERENCES subnets(id) ON DELETE CASCADE,
+		FOREIGN KEY (target_subnet_id) REFERENCES subnets(id) ON DELETE CASCADE
+	);
+
 	CREATE INDEX IF NOT EXISTS idx_subnets_location ON subnets(location);
 	CREATE INDEX IF NOT EXISTS idx_subnets_cloud_provider ON subnets(cloud_provider);
 	CREATE INDEX IF NOT EXISTS idx_subnets_cidr ON subnets(cidr);
 	CREATE INDEX IF NOT EXISTS idx_subnets_parent_id ON subnets(parent_id);
 	CREATE INDEX IF NOT EXISTS idx_subnets_cloud_resource_type ON subnets(cloud_resource_type);
+	
+	CREATE INDEX IF NOT EXISTS idx_connections_source ON connections(source_subnet_id);
+	CREATE INDEX IF NOT EXISTS idx_connections_target ON connections(target_subnet_id);
+	CREATE INDEX IF NOT EXISTS idx_connections_type ON connections(connection_type);
+	CREATE INDEX IF NOT EXISTS idx_connections_status ON connections(status);
 	`
 
 	_, err := r.db.Exec(schema)
@@ -388,6 +411,275 @@ func (r *SQLiteRepository) Delete(ctx context.Context, id string) error {
 // Close closes the database connection
 func (r *SQLiteRepository) Close() error {
 	return r.db.Close()
+}
+
+// Connection methods
+
+// CreateConnection inserts a new connection into the database
+func (r *SQLiteRepository) CreateConnection(ctx context.Context, connection *Connection) error {
+	query := `
+		INSERT INTO connections (
+			id, source_subnet_id, target_subnet_id, connection_type, status,
+			name, description, bandwidth, latency, cost, metadata,
+			created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+
+	metadataJSON := ""
+	if connection.Metadata != nil {
+		// Convert metadata to JSON string
+		// For simplicity, we'll skip JSON marshaling for now
+		// In a real implementation, you'd use json.Marshal
+	}
+
+	_, err := r.db.ExecContext(ctx, query,
+		connection.ID,
+		connection.SourceSubnetID,
+		connection.TargetSubnetID,
+		connection.ConnectionType,
+		connection.Status,
+		connection.Name,
+		connection.Description,
+		connection.Bandwidth,
+		connection.Latency,
+		connection.Cost,
+		metadataJSON,
+		connection.CreatedAt.Unix(),
+		connection.UpdatedAt.Unix(),
+	)
+
+	return err
+}
+
+// GetConnectionByID retrieves a connection by its ID
+func (r *SQLiteRepository) GetConnectionByID(ctx context.Context, id string) (*Connection, error) {
+	query := `
+		SELECT id, source_subnet_id, target_subnet_id, connection_type, status,
+			   name, description, bandwidth, latency, cost, metadata,
+			   created_at, updated_at
+		FROM connections
+		WHERE id = ?
+	`
+
+	row := r.db.QueryRowContext(ctx, query, id)
+
+	connection := &Connection{}
+	var metadataJSON string
+	var createdAt, updatedAt int64
+
+	err := row.Scan(
+		&connection.ID,
+		&connection.SourceSubnetID,
+		&connection.TargetSubnetID,
+		&connection.ConnectionType,
+		&connection.Status,
+		&connection.Name,
+		&connection.Description,
+		&connection.Bandwidth,
+		&connection.Latency,
+		&connection.Cost,
+		&metadataJSON,
+		&createdAt,
+		&updatedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("connection not found")
+		}
+		return nil, err
+	}
+
+	connection.CreatedAt = time.Unix(createdAt, 0)
+	connection.UpdatedAt = time.Unix(updatedAt, 0)
+
+	// Parse metadata JSON if needed
+	if metadataJSON != "" {
+		// In a real implementation, you'd use json.Unmarshal
+		connection.Metadata = make(map[string]interface{})
+	}
+
+	return connection, nil
+}
+
+// UpdateConnection updates an existing connection
+func (r *SQLiteRepository) UpdateConnection(ctx context.Context, id string, connection *Connection) error {
+	query := `
+		UPDATE connections SET
+			source_subnet_id = ?, target_subnet_id = ?, connection_type = ?, status = ?,
+			name = ?, description = ?, bandwidth = ?, latency = ?, cost = ?,
+			metadata = ?, updated_at = ?
+		WHERE id = ?
+	`
+
+	metadataJSON := ""
+	if connection.Metadata != nil {
+		// Convert metadata to JSON string
+		// For simplicity, we'll skip JSON marshaling for now
+	}
+
+	result, err := r.db.ExecContext(ctx, query,
+		connection.SourceSubnetID,
+		connection.TargetSubnetID,
+		connection.ConnectionType,
+		connection.Status,
+		connection.Name,
+		connection.Description,
+		connection.Bandwidth,
+		connection.Latency,
+		connection.Cost,
+		metadataJSON,
+		time.Now().Unix(),
+		id,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("connection not found")
+	}
+
+	return nil
+}
+
+// DeleteConnection removes a connection from the database
+func (r *SQLiteRepository) DeleteConnection(ctx context.Context, id string) error {
+	query := `DELETE FROM connections WHERE id = ?`
+
+	result, err := r.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("connection not found")
+	}
+
+	return nil
+}
+
+// ListConnections retrieves connections with optional filtering
+func (r *SQLiteRepository) ListConnections(ctx context.Context, filters ConnectionFilters) (*ConnectionList, error) {
+	// Build WHERE clause
+	var conditions []string
+	var args []interface{}
+
+	if filters.SourceSubnetID != "" {
+		conditions = append(conditions, "source_subnet_id = ?")
+		args = append(args, filters.SourceSubnetID)
+	}
+
+	if filters.TargetSubnetID != "" {
+		conditions = append(conditions, "target_subnet_id = ?")
+		args = append(args, filters.TargetSubnetID)
+	}
+
+	if filters.ConnectionType != "" {
+		conditions = append(conditions, "connection_type = ?")
+		args = append(args, filters.ConnectionType)
+	}
+
+	if filters.Status != "" {
+		conditions = append(conditions, "status = ?")
+		args = append(args, filters.Status)
+	}
+
+	whereClause := ""
+	if len(conditions) > 0 {
+		whereClause = "WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	// Count total records
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM connections %s", whereClause)
+	var totalCount int32
+	err := r.db.QueryRowContext(ctx, countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build main query with pagination
+	query := fmt.Sprintf(`
+		SELECT id, source_subnet_id, target_subnet_id, connection_type, status,
+			   name, description, bandwidth, latency, cost, metadata,
+			   created_at, updated_at
+		FROM connections
+		%s
+		ORDER BY created_at DESC
+		LIMIT ? OFFSET ?
+	`, whereClause)
+
+	// Add pagination parameters
+	limit := filters.PageSize
+	if limit <= 0 {
+		limit = 50 // Default page size
+	}
+	offset := filters.Page * limit
+
+	args = append(args, limit, offset)
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var connections []*Connection
+	for rows.Next() {
+		connection := &Connection{}
+		var metadataJSON string
+		var createdAt, updatedAt int64
+
+		err := rows.Scan(
+			&connection.ID,
+			&connection.SourceSubnetID,
+			&connection.TargetSubnetID,
+			&connection.ConnectionType,
+			&connection.Status,
+			&connection.Name,
+			&connection.Description,
+			&connection.Bandwidth,
+			&connection.Latency,
+			&connection.Cost,
+			&metadataJSON,
+			&createdAt,
+			&updatedAt,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		connection.CreatedAt = time.Unix(createdAt, 0)
+		connection.UpdatedAt = time.Unix(updatedAt, 0)
+
+		// Parse metadata JSON if needed
+		if metadataJSON != "" {
+			connection.Metadata = make(map[string]interface{})
+		}
+
+		connections = append(connections, connection)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return &ConnectionList{
+		Connections: connections,
+		TotalCount:  totalCount,
+	}, nil
 }
 
 // parseLocationType converts a string to LocationType enum

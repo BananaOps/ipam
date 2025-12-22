@@ -67,3 +67,36 @@ type SubnetList struct {
 	Subnets    []*Subnet `json:"subnets"`
 	TotalCount int32     `json:"total_count"`
 }
+
+// Connection represents a connection between subnets
+type Connection struct {
+	ID             string                 `json:"id"`
+	SourceSubnetID string                 `json:"source_subnet_id"`
+	TargetSubnetID string                 `json:"target_subnet_id"`
+	ConnectionType string                 `json:"connection_type"`
+	Status         string                 `json:"status"`
+	Name           string                 `json:"name"`
+	Description    string                 `json:"description,omitempty"`
+	Bandwidth      string                 `json:"bandwidth,omitempty"`
+	Latency        int32                  `json:"latency,omitempty"`
+	Cost           float64                `json:"cost,omitempty"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	CreatedAt      time.Time              `json:"created_at"`
+	UpdatedAt      time.Time              `json:"updated_at"`
+}
+
+// ConnectionFilters contains filtering criteria for connection queries
+type ConnectionFilters struct {
+	SourceSubnetID string
+	TargetSubnetID string
+	ConnectionType string
+	Status         string
+	Page           int32
+	PageSize       int32
+}
+
+// ConnectionList represents a list of connections with pagination
+type ConnectionList struct {
+	Connections []*Connection `json:"connections"`
+	TotalCount  int32         `json:"total_count"`
+}

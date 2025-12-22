@@ -101,6 +101,56 @@ type DeleteResponseJSON struct {
 	Success bool `json:"success"`
 }
 
+// Connection JSON structures
+
+// CreateConnectionJSON represents the JSON request for creating a connection
+type CreateConnectionJSON struct {
+	SourceSubnetID string                 `json:"source_subnet_id"`
+	TargetSubnetID string                 `json:"target_subnet_id"`
+	ConnectionType string                 `json:"connection_type"`
+	Name           string                 `json:"name"`
+	Description    string                 `json:"description,omitempty"`
+	Bandwidth      string                 `json:"bandwidth,omitempty"`
+	Latency        int32                  `json:"latency,omitempty"`
+	Cost           float64                `json:"cost,omitempty"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// UpdateConnectionJSON represents the JSON request for updating a connection
+type UpdateConnectionJSON struct {
+	Name           string                 `json:"name,omitempty"`
+	Description    string                 `json:"description,omitempty"`
+	ConnectionType string                 `json:"connection_type,omitempty"`
+	Status         string                 `json:"status,omitempty"`
+	Bandwidth      string                 `json:"bandwidth,omitempty"`
+	Latency        int32                  `json:"latency,omitempty"`
+	Cost           float64                `json:"cost,omitempty"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// ConnectionJSON represents a connection in JSON format
+type ConnectionJSON struct {
+	ID             string                 `json:"id"`
+	SourceSubnetID string                 `json:"source_subnet_id"`
+	TargetSubnetID string                 `json:"target_subnet_id"`
+	ConnectionType string                 `json:"connection_type"`
+	Status         string                 `json:"status"`
+	Name           string                 `json:"name"`
+	Description    string                 `json:"description,omitempty"`
+	Bandwidth      string                 `json:"bandwidth,omitempty"`
+	Latency        int32                  `json:"latency,omitempty"`
+	Cost           float64                `json:"cost,omitempty"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	CreatedAt      int64                  `json:"created_at"`
+	UpdatedAt      int64                  `json:"updated_at"`
+}
+
+// ListConnectionsResponseJSON represents the list connections response in JSON
+type ListConnectionsResponseJSON struct {
+	Connections []*ConnectionJSON `json:"connections"`
+	TotalCount  int32             `json:"total_count"`
+}
+
 // JSONToCreateSubnetRequest converts JSON to Protobuf CreateSubnetRequest
 func JSONToCreateSubnetRequest(data []byte) (*pb.CreateSubnetRequest, error) {
 	var jsonReq CreateSubnetJSON
@@ -306,6 +356,40 @@ func RepositorySubnetsToJSON(subnets []*repository.Subnet) []*SubnetJSON {
 	result := make([]*SubnetJSON, len(subnets))
 	for i, subnet := range subnets {
 		result[i] = RepositorySubnetToJSON(subnet)
+	}
+	return result
+}
+
+// Connection conversion functions
+
+// RepositoryConnectionToJSON converts a repository Connection to JSON format
+func RepositoryConnectionToJSON(connection *repository.Connection) *ConnectionJSON {
+	if connection == nil {
+		return nil
+	}
+
+	return &ConnectionJSON{
+		ID:             connection.ID,
+		SourceSubnetID: connection.SourceSubnetID,
+		TargetSubnetID: connection.TargetSubnetID,
+		ConnectionType: connection.ConnectionType,
+		Status:         connection.Status,
+		Name:           connection.Name,
+		Description:    connection.Description,
+		Bandwidth:      connection.Bandwidth,
+		Latency:        connection.Latency,
+		Cost:           connection.Cost,
+		Metadata:       connection.Metadata,
+		CreatedAt:      connection.CreatedAt.Unix(),
+		UpdatedAt:      connection.UpdatedAt.Unix(),
+	}
+}
+
+// RepositoryConnectionsToJSON converts a slice of repository Connections to JSON format
+func RepositoryConnectionsToJSON(connections []*repository.Connection) []*ConnectionJSON {
+	result := make([]*ConnectionJSON, len(connections))
+	for i, connection := range connections {
+		result[i] = RepositoryConnectionToJSON(connection)
 	}
 	return result
 }

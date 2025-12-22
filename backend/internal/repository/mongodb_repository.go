@@ -237,6 +237,27 @@ func (r *MongoDBRepository) Close() error {
 	return r.client.Disconnect(ctx)
 }
 
+// Connection methods - Not implemented for MongoDB yet
+func (r *MongoDBRepository) CreateConnection(ctx context.Context, connection *Connection) error {
+	return fmt.Errorf("connection methods not implemented for MongoDB repository")
+}
+
+func (r *MongoDBRepository) GetConnectionByID(ctx context.Context, id string) (*Connection, error) {
+	return nil, fmt.Errorf("connection methods not implemented for MongoDB repository")
+}
+
+func (r *MongoDBRepository) UpdateConnection(ctx context.Context, id string, connection *Connection) error {
+	return fmt.Errorf("connection methods not implemented for MongoDB repository")
+}
+
+func (r *MongoDBRepository) DeleteConnection(ctx context.Context, id string) error {
+	return fmt.Errorf("connection methods not implemented for MongoDB repository")
+}
+
+func (r *MongoDBRepository) ListConnections(ctx context.Context, filters ConnectionFilters) (*ConnectionList, error) {
+	return nil, fmt.Errorf("connection methods not implemented for MongoDB repository")
+}
+
 // toDocument converts a Protobuf Subnet to a MongoDB document
 func (r *MongoDBRepository) toDocument(subnet *pb.Subnet) *subnetDocument {
 	doc := &subnetDocument{

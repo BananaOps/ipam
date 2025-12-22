@@ -360,3 +360,94 @@ func (s *ServiceLayer) CreateSubnetRepository(ctx context.Context, subnet *repos
 func (s *ServiceLayer) GetSubnetRepository(ctx context.Context, id string) (*repository.Subnet, error) {
 	return s.subnetRepo.GetSubnetByID(ctx, id)
 }
+
+// Connection methods
+
+// CreateConnection creates a new connection between subnets
+func (s *ServiceLayer) CreateConnection(ctx context.Context, connection *repository.Connection) error {
+	// Validate that source and target subnets exist
+	_, err := s.subnetRepo.GetSubnetByID(ctx, connection.SourceSubnetID)
+	if err != nil {
+		return fmt.Errorf("source subnet not found: %w", err)
+	}
+
+	_, err = s.subnetRepo.GetSubnetByID(ctx, connection.TargetSubnetID)
+	if err != nil {
+		return fmt.Errorf("target subnet not found: %w", err)
+	}
+
+	// Validate that source and target are different
+	if connection.SourceSubnetID == connection.TargetSubnetID {
+		return fmt.Errorf("source and target subnets cannot be the same")
+	}
+
+	// Set timestamps
+	now := time.Now()
+	connection.CreatedAt = now
+	connection.UpdatedAt = now
+
+	// Set default status if not provided
+	if connection.Status == "" {
+		connection.Status = "active"
+	}
+
+	return s.subnetRepo.CreateConnection(ctx, connection)
+}
+
+// GetConnection retrieves a connection by ID
+func (s *ServiceLayer) GetConnection(ctx context.Context, id string) (*repository.Connection, error) {
+	return s.subnetRepo.GetConnectionByID(ctx, id)
+}
+
+// UpdateConnection updates an existing connection
+func (s *ServiceLayer) UpdateConnection(ctx context.Context, id string, connection *repository.Connection) error {
+	// Check if connection exists
+	existing, err := s.subnetRepo.GetConnectionByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("connection not found: %w", err)
+	}
+
+	// If source or target subnet changed, validate they exist
+	if connection.SourceSubnetID != "" && connection.SourceSubnetID != existing.SourceSubnetID {
+		_, err := s.subnetRepo.GetSubnetByID(ctx, connection.SourceSubnetID)
+		if err != nil {
+			return fmt.Errorf("source subnet not found: %w", err)
+		}
+	}
+
+	if connection.TargetSubnetID != "" && connection.TargetSubnetID != existing.TargetSubnetID {
+		_, err := s.subnetRepo.GetSubnetByID(ctx, connection.TargetSubnetID)
+		if err != nil {
+			return fmt.Errorf("target subnet not found: %w", err)
+		}
+	}
+
+	// Validate that source and target are different
+	sourceID := connection.SourceSubnetID
+	if sourceID == "" {
+		sourceID = existing.SourceSubnetID
+	}
+	targetID := connection.TargetSubnetID
+	if targetID == "" {
+		targetID = existing.TargetSubnetID
+	}
+
+	if sourceID == targetID {
+		return fmt.Errorf("source and target subnets cannot be the same")
+	}
+
+	// Update timestamp
+	connection.UpdatedAt = time.Now()
+
+	return s.subnetRepo.UpdateConnection(ctx, id, connection)
+}
+
+// DeleteConnection removes a connection
+func (s *ServiceLayer) DeleteConnection(ctx context.Context, id string) error {
+	return s.subnetRepo.DeleteConnection(ctx, id)
+}
+
+// ListConnections retrieves connections with optional filtering
+func (s *ServiceLayer) ListConnections(ctx context.Context, filters repository.ConnectionFilters) (*repository.ConnectionList, error) {
+	return s.subnetRepo.ListConnections(ctx, filters)
+}

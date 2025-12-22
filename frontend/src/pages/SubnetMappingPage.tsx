@@ -10,7 +10,13 @@ import {
   faCompress
 } from '@fortawesome/free-solid-svg-icons';
 import { apiClient } from '../services/api';
-import { Subnet, SubnetFilters, CloudProviderType, APIError } from '../types';
+import { 
+  Subnet, 
+  SubnetFilters, 
+  CloudProviderType, 
+  APIError,
+  SubnetConnection 
+} from '../types';
 import CloudProviderIcon from '../components/CloudProviderIcon';
 import ErrorMessage from '../components/ErrorMessage';
 import { useToast } from '../contexts/ToastContext';
@@ -19,6 +25,7 @@ import './SubnetMappingPage.css';
 
 function SubnetMappingPage() {
   const [subnets, setSubnets] = useState<Subnet[]>([]);
+  const [connections, setConnections] = useState<SubnetConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<APIError | Error | null>(null);
   const [filters, setFilters] = useState<SubnetFilters>({});
@@ -34,8 +41,14 @@ function SubnetMappingPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.listSubnets(filters);
-      setSubnets(response.subnets);
+      
+      const [subnetsResponse, connectionsResponse] = await Promise.all([
+        apiClient.listSubnets(filters),
+        apiClient.listConnections()
+      ]);
+      
+      setSubnets(subnetsResponse.subnets);
+      setConnections(connectionsResponse.connections);
     } catch (err: any) {
       setError(err);
       showToastError(err.message || 'Failed to load subnets');
@@ -236,6 +249,7 @@ function SubnetMappingPage() {
         ) : (
           <SubnetDiagram
             subnets={subnets}
+            connections={connections}
             viewMode={viewMode}
             isFullscreen={isFullscreen}
           />

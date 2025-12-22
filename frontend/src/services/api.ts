@@ -7,6 +7,10 @@ import type {
   CreateSubnetRequest,
   UpdateSubnetRequest,
   SubnetListResponse,
+  SubnetConnection,
+  CreateConnectionRequest,
+  UpdateConnectionRequest,
+  ConnectionListResponse,
   APIError,
 } from '../types';
 import { LocationType, CloudProviderType } from '../types';
@@ -63,6 +67,28 @@ function transformSubnetFromAPI(apiSubnet: any): Subnet {
     },
     createdAt: apiSubnet.created_at,
     updatedAt: apiSubnet.updated_at,
+    connections: apiSubnet.connections ? apiSubnet.connections.map(transformConnectionFromAPI) : [],
+  };
+}
+
+/**
+ * Transform connection API response from snake_case to camelCase
+ */
+function transformConnectionFromAPI(apiConnection: any): SubnetConnection {
+  return {
+    id: apiConnection.id,
+    sourceSubnetId: apiConnection.source_subnet_id,
+    targetSubnetId: apiConnection.target_subnet_id,
+    connectionType: apiConnection.connection_type,
+    status: apiConnection.status,
+    name: apiConnection.name,
+    description: apiConnection.description,
+    bandwidth: apiConnection.bandwidth,
+    latency: apiConnection.latency,
+    cost: apiConnection.cost,
+    metadata: apiConnection.metadata,
+    createdAt: apiConnection.created_at,
+    updatedAt: apiConnection.updated_at,
   };
 }
 
@@ -308,6 +334,95 @@ class APIClient {
   async deleteSubnet(id: string): Promise<void> {
     return this.retryRequest(async () => {
       await this.axiosInstance.delete(`/subnets/${id}`);
+    });
+  }
+
+  /**
+   * Create a new connection between subnets
+   * @param data - Connection creation data
+   * @returns Created connection
+   */
+  async createConnection(data: CreateConnectionRequest): Promise<SubnetConnection> {
+    return this.retryRequest(async () => {
+      const requestData = {
+        source_subnet_id: data.sourceSubnetId,
+        target_subnet_id: data.targetSubnetId,
+        connection_type: data.connectionType,
+        name: data.name,
+        description: data.description,
+        bandwidth: data.bandwidth,
+        latency: data.latency,
+        cost: data.cost,
+        metadata: data.metadata,
+      };
+      
+      console.log('[APIClient] Creating connection with data:', requestData);
+      
+      const response = await this.axiosInstance.post<any>('/connections', requestData);
+      return transformConnectionFromAPI(response.data);
+    });
+  }
+
+  /**
+   * List all connections
+   * @returns List of connections
+   */
+  async listConnections(): Promise<ConnectionListResponse> {
+    return this.retryRequest(async () => {
+      const response = await this.axiosInstance.get<any>('/connections');
+      
+      return {
+        connections: response.data.connections.map(transformConnectionFromAPI),
+        totalCount: response.data.total_count,
+      };
+    });
+  }
+
+  /**
+   * Get a specific connection by ID
+   * @param id - Connection ID
+   * @returns Connection details
+   */
+  async getConnection(id: string): Promise<SubnetConnection> {
+    return this.retryRequest(async () => {
+      const response = await this.axiosInstance.get<any>(`/connections/${id}`);
+      return transformConnectionFromAPI(response.data);
+    });
+  }
+
+  /**
+   * Update an existing connection
+   * @param id - Connection ID
+   * @param data - Updated connection data
+   * @returns Updated connection
+   */
+  async updateConnection(id: string, data: UpdateConnectionRequest): Promise<SubnetConnection> {
+    return this.retryRequest(async () => {
+      const requestData = {
+        name: data.name,
+        description: data.description,
+        connection_type: data.connectionType,
+        status: data.status,
+        bandwidth: data.bandwidth,
+        latency: data.latency,
+        cost: data.cost,
+        metadata: data.metadata,
+      };
+      
+      console.log('[APIClient] Updating connection with data:', requestData);
+      
+      const response = await this.axiosInstance.put<any>(`/connections/${id}`, requestData);
+      return transformConnectionFromAPI(response.data);
+    });
+  }
+
+  /**
+   * Delete a connection
+   * @param id - Connection ID
+   */
+  async deleteConnection(id: string): Promise<void> {
+    return this.retryRequest(async () => {
+      await this.axiosInstance.delete(`/connections/${id}`);
     });
   }
 

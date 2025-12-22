@@ -22,4 +22,11 @@ type SubnetRepository interface {
 	UpdateSubnet(ctx context.Context, id string, subnet *Subnet) error
 	ListSubnets(ctx context.Context, filters SubnetFilters) (*SubnetList, error)
 	GetSubnetChildren(ctx context.Context, parentID string) ([]*Subnet, error)
+
+	// Connection methods
+	CreateConnection(ctx context.Context, connection *Connection) error
+	GetConnectionByID(ctx context.Context, id string) (*Connection, error)
+	UpdateConnection(ctx context.Context, id string, connection *Connection) error
+	DeleteConnection(ctx context.Context, id string) error
+	ListConnections(ctx context.Context, filters ConnectionFilters) (*ConnectionList, error)
 }

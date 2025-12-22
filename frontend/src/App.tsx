@@ -8,6 +8,7 @@ import SubnetDetailPage from './pages/SubnetDetailPage';
 import CreateSubnetPage from './pages/CreateSubnetPage';
 import EditSubnetPage from './pages/EditSubnetPage';
 import SubnetMappingPage from './pages/SubnetMappingPage';
+import SubnetConnectionsPage from './pages/SubnetConnectionsPage';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
                   <Route index element={<SubnetListPage />} />
                   <Route path="create" element={<CreateSubnetPage />} />
                   <Route path="mapping" element={<SubnetMappingPage />} />
+                  <Route path="connections" element={<SubnetConnectionsPage />} />
                   <Route path=":id" element={<SubnetDetailPage />} />
                   <Route path=":id/edit" element={<EditSubnetPage />} />
                 </Route>
