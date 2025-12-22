@@ -45,7 +45,7 @@ function Layout() {
               className={`nav-link ${isActive('/subnets/connections') ? 'active' : ''}`}
             >
               <FontAwesomeIcon icon={faLink} />
-              <span>Connexions</span>
+              <span>Connections</span>
             </Link>
             <Link 
               to="/subnets/create" 

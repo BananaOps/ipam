@@ -154,7 +154,7 @@ function SubnetMappingPage() {
               <button
                 className={`view-mode-btn ${viewMode === 'hierarchy' ? 'active' : ''}`}
                 onClick={() => setViewMode('hierarchy')}
-                title="Vue hiérarchique"
+                title="Hierarchical view"
               >
                 <FontAwesomeIcon icon={faSitemap} />
                 <span>Hierarchy</span>
@@ -162,7 +162,7 @@ function SubnetMappingPage() {
               <button
                 className={`view-mode-btn ${viewMode === 'network' ? 'active' : ''}`}
                 onClick={() => setViewMode('network')}
-                title="Vue réseau"
+                title="Network view"
               >
                 <FontAwesomeIcon icon={faNetworkWired} />
                 <span>Network</span>
@@ -170,7 +170,7 @@ function SubnetMappingPage() {
               <button
                 className={`view-mode-btn ${viewMode === 'cloud' ? 'active' : ''}`}
                 onClick={() => setViewMode('cloud')}
-                title="Vue cloud"
+                title="Cloud view"
               >
                 <FontAwesomeIcon icon={faCloud} />
                 <span>Cloud</span>
@@ -191,11 +191,11 @@ function SubnetMappingPage() {
             <div className="filter-group">
               <label>
                 <FontAwesomeIcon icon={faSearch} />
-                Recherche globale
+                Global Search
               </label>
               <input
                 type="text"
-                placeholder="Rechercher par nom, CIDR, description, localisation..."
+                placeholder="Search by name, CIDR, description, location..."
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 className="filter-input search-input"

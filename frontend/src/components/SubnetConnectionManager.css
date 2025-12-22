@@ -34,7 +34,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: var(--accent-primary);
+  background: var(--accent-color);
   color: white;
   border: none;
   border-radius: 0.375rem;
@@ -43,7 +43,7 @@
 }
 
 .create-connection-btn:hover:not(:disabled) {
-  background: var(--accent-primary-hover);
+  background: #0284c7;
   transform: translateY(-1px);
 }
 
@@ -162,13 +162,13 @@
 }
 
 .save-button {
-  background: var(--accent-primary);
-  border: 1px solid var(--accent-primary);
+  background: var(--accent-color);
+  border: 1px solid var(--accent-color);
   color: white;
 }
 
 .save-button:hover {
-  background: var(--accent-primary-hover);
+  background: #0284c7;
   transform: translateY(-1px);
 }
 
@@ -276,7 +276,7 @@
 
 .edit-btn:hover {
   background: var(--bg-hover);
-  color: var(--accent-primary);
+  color: var(--accent-color);
 }
 
 .delete-btn:hover {
@@ -308,13 +308,13 @@
 }
 
 .connection-route .link-icon {
-  color: var(--accent-primary);
+  color: var(--accent-color);
 }
 
 .connection-type {
   display: inline-block;
-  background: var(--accent-primary-alpha);
-  color: var(--accent-primary);
+  background: rgba(14, 165, 233, 0.1);
+  color: var(--accent-color);
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   font-size: 0.75rem;

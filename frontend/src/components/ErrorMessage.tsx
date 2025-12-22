@@ -70,7 +70,7 @@ function ErrorMessage({
 
       {showDetails && (code || original) && (
         <div className="error-message-details">
-          <strong>Détails techniques :</strong>
+          <strong>Technical details:</strong>
           <ul>
             {code && (
               <li><strong>Code :</strong> {code}</li>
@@ -97,7 +97,7 @@ function ErrorMessage({
               className="btn-secondary error-message-dismiss"
               onClick={onDismiss}
             >
-              Fermer
+              Close
             </button>
           )}
         </div>

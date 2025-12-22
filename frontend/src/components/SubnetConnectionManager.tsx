@@ -31,8 +31,8 @@ interface SubnetConnectionManagerProps {
 }
 
 const CONNECTION_TYPE_LABELS: Record<ConnectionType, string> = {
-  [ConnectionType.VPN_SITE_TO_SITE]: 'VPN Site-à-Site',
-  [ConnectionType.OPENVPN_CLIENT]: 'Client OpenVPN',
+  [ConnectionType.VPN_SITE_TO_SITE]: 'VPN Site-to-Site',
+  [ConnectionType.OPENVPN_CLIENT]: 'OpenVPN Client',
   [ConnectionType.NAT_GATEWAY]: 'NAT Gateway',
   [ConnectionType.INTERNET_GATEWAY]: 'Internet Gateway',
   [ConnectionType.PEERING]: 'Peering',
@@ -42,14 +42,14 @@ const CONNECTION_TYPE_LABELS: Record<ConnectionType, string> = {
   [ConnectionType.CLOUD_INTERCONNECT]: 'Cloud Interconnect',
   [ConnectionType.LOAD_BALANCER]: 'Load Balancer',
   [ConnectionType.FIREWALL]: 'Firewall',
-  [ConnectionType.CUSTOM]: 'Personnalisé'
+  [ConnectionType.CUSTOM]: 'Custom'
 };
 
 const CONNECTION_STATUS_LABELS: Record<ConnectionStatus, string> = {
-  [ConnectionStatus.ACTIVE]: 'Actif',
-  [ConnectionStatus.INACTIVE]: 'Inactif',
-  [ConnectionStatus.PENDING]: 'En attente',
-  [ConnectionStatus.ERROR]: 'Erreur'
+  [ConnectionStatus.ACTIVE]: 'Active',
+  [ConnectionStatus.INACTIVE]: 'Inactive',
+  [ConnectionStatus.PENDING]: 'Pending',
+  [ConnectionStatus.ERROR]: 'Error'
 };
 
 function SubnetConnectionManager({
@@ -83,21 +83,21 @@ function SubnetConnectionManager({
   const handleCreateConnection = async () => {
     try {
       if (!formData.sourceSubnetId || !formData.targetSubnetId || !formData.name) {
-        showError('Veuillez remplir tous les champs obligatoires');
+        showError('Please fill in all required fields');
         return;
       }
 
       if (formData.sourceSubnetId === formData.targetSubnetId) {
-        showError('Un sous-réseau ne peut pas se connecter à lui-même');
+        showError('A subnet cannot connect to itself');
         return;
       }
 
       await onCreateConnection(formData);
-      showSuccess('Connexion créée avec succès');
+      showSuccess('Connection created successfully');
       setIsCreating(false);
       resetForm();
     } catch (error: any) {
-      showError(error.message || 'Erreur lors de la création de la connexion');
+      showError(error.message || 'Error creating connection');
     }
   };
 
@@ -115,24 +115,24 @@ function SubnetConnectionManager({
       };
 
       await onUpdateConnection(editingConnection.id, updateData);
-      showSuccess('Connexion mise à jour avec succès');
+      showSuccess('Connection updated successfully');
       setEditingConnection(null);
       resetForm();
     } catch (error: any) {
-      showError(error.message || 'Erreur lors de la mise à jour de la connexion');
+      showError(error.message || 'Error updating connection');
     }
   };
 
   const handleDeleteConnection = async (connection: SubnetConnection) => {
-    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer la connexion "${connection.name}" ?`)) {
+    if (!window.confirm(`Are you sure you want to delete the connection "${connection.name}"?`)) {
       return;
     }
 
     try {
       await onDeleteConnection(connection.id);
-      showSuccess('Connexion supprimée avec succès');
+      showSuccess('Connection deleted successfully');
     } catch (error: any) {
-      showError(error.message || 'Erreur lors de la suppression de la connexion');
+      showError(error.message || 'Error deleting connection');
     }
   };
 
@@ -202,7 +202,7 @@ function SubnetConnectionManager({
       <div className="connection-header">
         <h3>
           <FontAwesomeIcon icon={faLink} />
-          Connexions Réseau
+          Network Connections
           {selectedSubnet && (
             <span className="selected-subnet">
               - {selectedSubnet.name}
@@ -215,7 +215,7 @@ function SubnetConnectionManager({
           disabled={isCreating || !!editingConnection}
         >
           <FontAwesomeIcon icon={faPlus} />
-          Nouvelle Connexion
+          New Connection
         </button>
       </div>
 
@@ -223,7 +223,7 @@ function SubnetConnectionManager({
       {(isCreating || editingConnection) && (
         <div className="connection-form">
           <div className="form-header">
-            <h4>{editingConnection ? 'Modifier la Connexion' : 'Nouvelle Connexion'}</h4>
+            <h4>{editingConnection ? 'Edit Connection' : 'New Connection'}</h4>
             <button onClick={cancelEditing} className="cancel-btn">
               <FontAwesomeIcon icon={faTimes} />
             </button>
@@ -231,13 +231,13 @@ function SubnetConnectionManager({
 
           <div className="form-grid">
             <div className="form-group">
-              <label>Sous-réseau source *</label>
+              <label>Source subnet *</label>
               <select
                 value={formData.sourceSubnetId}
                 onChange={(e) => setFormData(prev => ({ ...prev, sourceSubnetId: e.target.value }))}
                 disabled={!!selectedSubnet}
               >
-                <option value="">Sélectionner un sous-réseau</option>
+                <option value="">Select a subnet</option>
                 {subnets.map(subnet => (
                   <option key={subnet.id} value={subnet.id}>
                     {subnet.name} ({subnet.cidr})
@@ -247,12 +247,12 @@ function SubnetConnectionManager({
             </div>
 
             <div className="form-group">
-              <label>Sous-réseau cible *</label>
+              <label>Target subnet *</label>
               <select
                 value={formData.targetSubnetId}
                 onChange={(e) => setFormData(prev => ({ ...prev, targetSubnetId: e.target.value }))}
               >
-                <option value="">Sélectionner une destination</option>
+                <option value="">Select a destination</option>
                 <option value="internet">🌐 Internet</option>
                 {subnets
                   .filter(subnet => subnet.id !== formData.sourceSubnetId)
@@ -265,7 +265,7 @@ function SubnetConnectionManager({
             </div>
 
             <div className="form-group">
-              <label>Type de connexion *</label>
+              <label>Connection type *</label>
               <select
                 value={formData.connectionType}
                 onChange={(e) => setFormData(prev => ({ ...prev, connectionType: e.target.value as ConnectionType }))}
@@ -277,12 +277,12 @@ function SubnetConnectionManager({
             </div>
 
             <div className="form-group">
-              <label>Nom de la connexion *</label>
+              <label>Connection name *</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="ex: VPN Paris-Londres"
+                placeholder="e.g. VPN Paris-London"
               />
             </div>
 
@@ -291,52 +291,52 @@ function SubnetConnectionManager({
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Description de la connexion..."
+                placeholder="Connection description..."
                 rows={2}
               />
             </div>
 
             <div className="form-group">
-              <label>Bande passante</label>
+              <label>Bandwidth</label>
               <input
                 type="text"
                 value={formData.bandwidth}
                 onChange={(e) => setFormData(prev => ({ ...prev, bandwidth: e.target.value }))}
-                placeholder="ex: 1Gbps, 100Mbps"
+                placeholder="e.g. 1Gbps, 100Mbps"
               />
             </div>
 
             <div className="form-group">
-              <label>Latence (ms)</label>
+              <label>Latency (ms)</label>
               <input
                 type="number"
                 value={formData.latency || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, latency: e.target.value ? parseInt(e.target.value) : undefined }))}
-                placeholder="ex: 50"
+                placeholder="e.g. 50"
               />
             </div>
 
             <div className="form-group">
-              <label>Coût mensuel (€)</label>
+              <label>Monthly cost (€)</label>
               <input
                 type="number"
                 step="0.01"
                 value={formData.cost || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, cost: e.target.value ? parseFloat(e.target.value) : undefined }))}
-                placeholder="ex: 99.99"
+                placeholder="e.g. 99.99"
               />
             </div>
           </div>
 
           <div className="form-actions">
             <button onClick={cancelEditing} className="cancel-button">
-              Annuler
+              Cancel
             </button>
             <button
               onClick={editingConnection ? handleUpdateConnection : handleCreateConnection}
               className="save-button"
             >
-              {editingConnection ? 'Mettre à jour' : 'Créer'}
+              {editingConnection ? 'Update' : 'Create'}
             </button>
           </div>
         </div>
@@ -347,10 +347,10 @@ function SubnetConnectionManager({
         {relevantConnections.length === 0 ? (
           <div className="no-connections">
             <FontAwesomeIcon icon={faLink} className="empty-icon" />
-            <p>Aucune connexion trouvée</p>
+            <p>No connections found</p>
             {selectedSubnet && (
               <p className="empty-subtitle">
-                Créez une connexion pour lier ce sous-réseau à d'autres
+                Create a connection to link this subnet to others
               </p>
             )}
           </div>
@@ -367,14 +367,14 @@ function SubnetConnectionManager({
                     <button
                       onClick={() => startEditing(connection)}
                       className="edit-btn"
-                      title="Modifier"
+                      title="Edit"
                     >
                       <FontAwesomeIcon icon={faEdit} />
                     </button>
                     <button
                       onClick={() => handleDeleteConnection(connection)}
                       className="delete-btn"
-                      title="Supprimer"
+                      title="Delete"
                     >
                       <FontAwesomeIcon icon={faTrash} />
                     </button>
@@ -401,17 +401,17 @@ function SubnetConnectionManager({
                   <div className="connection-metadata">
                     {connection.bandwidth && (
                       <span className="metadata-item">
-                        <strong>Bande passante:</strong> {connection.bandwidth}
+                        <strong>Bandwidth:</strong> {connection.bandwidth}
                       </span>
                     )}
                     {connection.latency && (
                       <span className="metadata-item">
-                        <strong>Latence:</strong> {connection.latency}ms
+                        <strong>Latency:</strong> {connection.latency}ms
                       </span>
                     )}
                     {connection.cost && (
                       <span className="metadata-item">
-                        <strong>Coût:</strong> {connection.cost}€/mois
+                        <strong>Cost:</strong> {connection.cost}€/month
                       </span>
                     )}
                   </div>

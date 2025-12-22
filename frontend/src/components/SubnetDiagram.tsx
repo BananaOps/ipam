@@ -6,7 +6,8 @@ import {
   faSearchPlus,
   faSearchMinus,
   faHome,
-  faExpand
+  faExpand,
+  faCloud
 } from '@fortawesome/free-solid-svg-icons';
 import { Subnet, CloudProviderType, SubnetConnection, ConnectionType, ConnectionStatus } from '../types';
 import CloudProviderIcon from './CloudProviderIcon';
@@ -29,9 +30,9 @@ interface DiagramNode {
   level: number;
   children: DiagramNode[];
   parent?: DiagramNode;
-  isSpecial?: boolean; // Pour les nœuds spéciaux comme Internet
-  specialType?: 'internet' | 'cloud'; // Type de nœud spécial
-  label?: string; // Label pour les nœuds spéciaux
+  isSpecial?: boolean; // For special nodes like Internet
+  specialType?: 'internet' | 'cloud'; // Type of special node
+  label?: string; // Label for special nodes
 }
 
 interface DiagramConnection {
@@ -717,7 +718,7 @@ function SubnetDiagram({ subnets, connections = [], viewMode, isFullscreen }: Su
                 style={{ color: style.stroke }}
               />
               
-              {/* Label de connexion pour les connexions réseau */}
+              {/* Connection label for network connections */}
               {connection.type === 'network' && connection.connection && (
                 <g>
                   {/* Fond du label */}
@@ -768,9 +769,9 @@ function SubnetDiagram({ subnets, connections = [], viewMode, isFullscreen }: Su
         {allNodes.map((node) => (
           <g key={node.id} className="diagram-node">
             {node.isSpecial ? (
-              // Rendu des nœuds spéciaux (Internet, etc.)
+              // Rendering special nodes (Internet, etc.)
               <>
-                {/* Fond du nœud spécial */}
+                {/* Special node background */}
                 <rect
                   x={node.x}
                   y={node.y}
@@ -786,27 +787,29 @@ function SubnetDiagram({ subnets, connections = [], viewMode, isFullscreen }: Su
                   onMouseLeave={() => setHoveredNode(null)}
                 />
 
-                {/* Icône de nuage pour Internet */}
+                {/* Cloud icon for Internet */}
                 {node.specialType === 'internet' && (
-                  <g>
-                    {/* Icône de nuage SVG */}
-                    <path
-                      d={`M${node.x + 20} ${node.y + 25} 
-                         C${node.x + 15} ${node.y + 20}, ${node.x + 25} ${node.y + 15}, ${node.x + 35} ${node.y + 20}
-                         C${node.x + 40} ${node.y + 15}, ${node.x + 50} ${node.y + 15}, ${node.x + 55} ${node.y + 20}
-                         C${node.x + 60} ${node.y + 25}, ${node.x + 55} ${node.y + 35}, ${node.x + 50} ${node.y + 35}
-                         L${node.x + 25} ${node.y + 35}
-                         C${node.x + 20} ${node.y + 35}, ${node.x + 15} ${node.y + 30}, ${node.x + 20} ${node.y + 25} Z`}
-                      fill="#0EA5E9"
-                      opacity="0.8"
-                    />
-                    {/* Petits nuages décoratifs */}
-                    <circle cx={node.x + 30} cy={node.y + 30} r="3" fill="#0EA5E9" opacity="0.6" />
-                    <circle cx={node.x + 45} cy={node.y + 28} r="2" fill="#0EA5E9" opacity="0.6" />
-                  </g>
+                  <foreignObject
+                    x={node.x + node.width / 2 - 15}
+                    y={node.y + 20}
+                    width="30"
+                    height="30"
+                  >
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'center', 
+                      alignItems: 'center',
+                      width: '100%',
+                      height: '100%',
+                      color: '#0EA5E9',
+                      fontSize: '24px'
+                    }}>
+                      <FontAwesomeIcon icon={faCloud} />
+                    </div>
+                  </foreignObject>
                 )}
 
-                {/* Label du nœud spécial */}
+                {/* Special node label */}
                 <text
                   x={node.x + node.width / 2}
                   y={node.y + 55}
@@ -819,7 +822,7 @@ function SubnetDiagram({ subnets, connections = [], viewMode, isFullscreen }: Su
                 </text>
               </>
             ) : (
-              // Rendu des nœuds de sous-réseaux normaux
+              // Rendering normal subnet nodes
               node.subnet && (
                 <>
                   {/* Node background */}
@@ -948,21 +951,21 @@ function SubnetDiagram({ subnets, connections = [], viewMode, isFullscreen }: Su
 
       {/* Keyboard shortcuts legend */}
       <div className="keyboard-shortcuts">
-        <div className="shortcuts-title">Raccourcis clavier:</div>
+        <div className="shortcuts-title">Keyboard shortcuts:</div>
         <div className="shortcut-item">+ / - : Zoom</div>
         <div className="shortcut-item">0 : Reset zoom</div>
-        <div className="shortcut-item">F : Ajuster à l'écran</div>
-        <div className="shortcut-item">Esc : Fermer détails</div>
+        <div className="shortcut-item">F : Fit to screen</div>
+        <div className="shortcut-item">Esc : Close details</div>
       </div>
 
       {/* Connection legend */}
       {diagramConnections.some(c => c.type === 'network') && (
         <div className="connection-legend">
-          <div className="legend-title">Types de connexions:</div>
+          <div className="legend-title">Connection types:</div>
           <div className="legend-items">
             <div className="legend-item">
               <div className="legend-line" style={{ backgroundColor: '#8B5CF6' }}></div>
-              <span>VPN Site-à-Site</span>
+              <span>VPN Site-to-Site</span>
             </div>
             <div className="legend-item">
               <div className="legend-line" style={{ backgroundColor: '#06B6D4' }}></div>
@@ -1004,7 +1007,7 @@ function SubnetDiagram({ subnets, connections = [], viewMode, isFullscreen }: Su
           
           <div className="panel-content">
             {selectedNode.isSpecial ? (
-              // Panneau pour les nœuds spéciaux
+              // Panel for special nodes
               <>
                 <div className="detail-row">
                   <label>Type:</label>
@@ -1015,13 +1018,13 @@ function SubnetDiagram({ subnets, connections = [], viewMode, isFullscreen }: Su
                   <label>Description:</label>
                   <span>
                     {selectedNode.specialType === 'internet' 
-                      ? 'Connexion vers Internet' 
-                      : 'Nœud spécial'}
+                      ? 'Connection to Internet' 
+                      : 'Special node'}
                   </span>
                 </div>
               </>
             ) : selectedNode.subnet ? (
-              // Panneau pour les sous-réseaux normaux
+              // Panel for normal subnets
               <>
                 <div className="detail-row">
                   <label>CIDR:</label>
@@ -1112,7 +1115,7 @@ function SubnetDiagram({ subnets, connections = [], viewMode, isFullscreen }: Su
           {hoveredNode.isSpecial ? (
             <>
               <strong>{hoveredNode.label}</strong><br />
-              {hoveredNode.specialType === 'internet' ? 'Connexion vers Internet' : 'Nœud spécial'}
+              {hoveredNode.specialType === 'internet' ? 'Connection to Internet' : 'Special node'}
             </>
           ) : hoveredNode.subnet ? (
             <>

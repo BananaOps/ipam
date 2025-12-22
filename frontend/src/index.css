@@ -30,13 +30,28 @@
 :root.theme-light {
   --bg-primary: var(--color-white);
   --bg-secondary: var(--color-light-gray);
+  --bg-tertiary: #F9FAFB;
+  --bg-hover: #F3F4F6;
   --bg-header: var(--color-dark-primary);
   --text-primary: var(--color-dark-primary);
   --text-secondary: var(--color-medium-gray);
+  --text-tertiary: #9CA3AF;
   --text-header: var(--color-white);
   --border-color: var(--color-light-border);
+  --border-hover: #D1D5DB;
+  --border-light: #F3F4F6;
   --accent-color: var(--color-cyan-accent);
+  --accent-primary: var(--color-cyan-accent);
+  --accent-primary-alpha: rgba(14, 165, 233, 0.1);
+  --accent-primary-hover: #0284c7;
   --shadow-color: rgba(0, 0, 0, 0.1);
+  --success-color: var(--color-success);
+  --warning-color: var(--color-warning);
+  --danger-color: var(--color-error);
+  --bg-danger: var(--color-error);
+  --bg-danger-hover: #dc2626;
+  --bg-danger-alpha: rgba(239, 68, 68, 0.1);
+  --border-danger: var(--color-error);
   
   color-scheme: light;
 }
@@ -45,13 +60,28 @@
 :root.theme-dark {
   --bg-primary: var(--color-dark-primary);
   --bg-secondary: var(--color-dark-gray);
+  --bg-tertiary: #374151;
+  --bg-hover: #4B5563;
   --bg-header: #050D1A;
   --text-primary: var(--color-white);
   --text-secondary: var(--color-light-gray);
+  --text-tertiary: #9CA3AF;
   --text-header: var(--color-white);
   --border-color: var(--color-dark-border);
+  --border-hover: #4B5563;
+  --border-light: #374151;
   --accent-color: var(--color-cyan-accent);
+  --accent-primary: var(--color-cyan-accent);
+  --accent-primary-alpha: rgba(14, 165, 233, 0.2);
+  --accent-primary-hover: #0284c7;
   --shadow-color: rgba(0, 0, 0, 0.3);
+  --success-color: var(--color-success);
+  --warning-color: var(--color-warning);
+  --danger-color: var(--color-error);
+  --bg-danger: var(--color-error);
+  --bg-danger-hover: #dc2626;
+  --bg-danger-alpha: rgba(239, 68, 68, 0.2);
+  --border-danger: var(--color-error);
   
   color-scheme: dark;
 }

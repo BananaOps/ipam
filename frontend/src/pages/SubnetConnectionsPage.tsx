@@ -86,10 +86,10 @@ function SubnetConnectionsPage() {
       <div className="page-header">
         <div className="header-title">
           <FontAwesomeIcon icon={faLink} />
-          <h1>Connexions Réseau</h1>
+          <h1>Network Connections</h1>
         </div>
         <p className="header-subtitle">
-          Gérez les connexions entre vos sous-réseaux (VPN, Peering, NAT Gateway, etc.)
+          Manage connections between your subnets (VPN, Peering, NAT Gateway, etc.)
         </p>
       </div>
 

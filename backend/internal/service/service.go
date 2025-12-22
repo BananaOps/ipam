@@ -361,19 +361,38 @@ func (s *ServiceLayer) GetSubnetRepository(ctx context.Context, id string) (*rep
 	return s.subnetRepo.GetSubnetByID(ctx, id)
 }
 
+// isSpecialDestination checks if a target subnet ID is a special destination (not a real subnet)
+func isSpecialDestination(targetID string) bool {
+	specialDestinations := []string{
+		"internet",
+		"cloud",
+		"external",
+	}
+
+	for _, special := range specialDestinations {
+		if targetID == special {
+			return true
+		}
+	}
+	return false
+}
+
 // Connection methods
 
 // CreateConnection creates a new connection between subnets
 func (s *ServiceLayer) CreateConnection(ctx context.Context, connection *repository.Connection) error {
-	// Validate that source and target subnets exist
+	// Validate that source subnet exists
 	_, err := s.subnetRepo.GetSubnetByID(ctx, connection.SourceSubnetID)
 	if err != nil {
 		return fmt.Errorf("source subnet not found: %w", err)
 	}
 
-	_, err = s.subnetRepo.GetSubnetByID(ctx, connection.TargetSubnetID)
-	if err != nil {
-		return fmt.Errorf("target subnet not found: %w", err)
+	// Validate target subnet only if it's not a special destination
+	if !isSpecialDestination(connection.TargetSubnetID) {
+		_, err = s.subnetRepo.GetSubnetByID(ctx, connection.TargetSubnetID)
+		if err != nil {
+			return fmt.Errorf("target subnet not found: %w", err)
+		}
 	}
 
 	// Validate that source and target are different
@@ -416,9 +435,12 @@ func (s *ServiceLayer) UpdateConnection(ctx context.Context, id string, connecti
 	}
 
 	if connection.TargetSubnetID != "" && connection.TargetSubnetID != existing.TargetSubnetID {
-		_, err := s.subnetRepo.GetSubnetByID(ctx, connection.TargetSubnetID)
-		if err != nil {
-			return fmt.Errorf("target subnet not found: %w", err)
+		// Only validate target subnet if it's not a special destination
+		if !isSpecialDestination(connection.TargetSubnetID) {
+			_, err := s.subnetRepo.GetSubnetByID(ctx, connection.TargetSubnetID)
+			if err != nil {
+				return fmt.Errorf("target subnet not found: %w", err)
+			}
 		}
 	}
 
