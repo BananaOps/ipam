@@ -214,7 +214,7 @@ function SubnetList({ filters: externalFilters, onFilterChange }: SubnetListProp
           <input
             id="search-input"
             type="text"
-            placeholder="Search by name or CIDR..."
+            placeholder="Rechercher par nom, CIDR, description, localisation..."
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="search-input"

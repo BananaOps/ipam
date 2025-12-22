@@ -258,9 +258,9 @@ func (r *SQLiteRepository) FindAll(ctx context.Context, filters *SubnetFilters) 
 			args = append(args, filters.CloudProviderFilter)
 		}
 		if filters.SearchQuery != "" {
-			query += " AND (name LIKE ? OR cidr LIKE ? OR description LIKE ?)"
+			query += " AND (name LIKE ? OR cidr LIKE ? OR description LIKE ? OR location LIKE ?)"
 			searchPattern := "%" + filters.SearchQuery + "%"
-			args = append(args, searchPattern, searchPattern, searchPattern)
+			args = append(args, searchPattern, searchPattern, searchPattern, searchPattern)
 		}
 	}
 
@@ -916,9 +916,9 @@ func (r *SQLiteRepository) ListSubnets(ctx context.Context, filters SubnetFilter
 		args = append(args, filters.CloudProvider)
 	}
 	if filters.SearchQuery != "" {
-		whereClause += " AND (name LIKE ? OR cidr LIKE ?)"
+		whereClause += " AND (name LIKE ? OR cidr LIKE ? OR description LIKE ? OR location LIKE ?)"
 		searchPattern := "%" + filters.SearchQuery + "%"
-		args = append(args, searchPattern, searchPattern)
+		args = append(args, searchPattern, searchPattern, searchPattern, searchPattern)
 	}
 
 	// Count total records

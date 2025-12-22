@@ -5,9 +5,11 @@ import {
   faNetworkWired, 
   faProjectDiagram, 
   faFilter,
-  faDownload,
   faExpand,
-  faCompress
+  faCompress,
+  faSearch,
+  faSitemap,
+  faCloud
 } from '@fortawesome/free-solid-svg-icons';
 import { apiClient } from '../services/api';
 import { 
@@ -21,6 +23,7 @@ import CloudProviderIcon from '../components/CloudProviderIcon';
 import ErrorMessage from '../components/ErrorMessage';
 import { useToast } from '../contexts/ToastContext';
 import SubnetDiagram from '../components/SubnetDiagram';
+import { useDebounce } from '../hooks';
 import './SubnetMappingPage.css';
 
 function SubnetMappingPage() {
@@ -29,13 +32,28 @@ function SubnetMappingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<APIError | Error | null>(null);
   const [filters, setFilters] = useState<SubnetFilters>({});
+  const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'hierarchy' | 'network' | 'cloud'>('hierarchy');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const { showError: showToastError } = useToast();
 
+  // Debounce search query with 300ms delay
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
   useEffect(() => {
     loadSubnets();
   }, [filters]);
+
+  // Update filters when debounced search query changes
+  useEffect(() => {
+    if (debouncedSearchQuery !== (filters.searchQuery || '')) {
+      const newFilters = { 
+        ...filters, 
+        searchQuery: debouncedSearchQuery || undefined 
+      };
+      setFilters(newFilters);
+    }
+  }, [debouncedSearchQuery]);
 
   const loadSubnets = async () => {
     try {
@@ -73,13 +91,13 @@ function SubnetMappingPage() {
     setFilters(newFilters);
   };
 
-  const clearFilters = () => {
-    setFilters({});
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
   };
 
-  const exportDiagram = () => {
-    // TODO: Implement diagram export functionality
-    console.log('Export diagram functionality to be implemented');
+  const clearFilters = () => {
+    setFilters({});
+    setSearchQuery('');
   };
 
   const toggleFullscreen = () => {
@@ -123,114 +141,118 @@ function SubnetMappingPage() {
           >
             <FontAwesomeIcon icon={isFullscreen ? faCompress : faExpand} />
           </button>
-          <button
-            onClick={exportDiagram}
-            className="action-button"
-            title="Export Diagram"
-          >
-            <FontAwesomeIcon icon={faDownload} />
-            Export
-          </button>
         </div>
       </div>
 
       {/* Filters and View Controls */}
       <div className="subnet-mapping-controls">
-        <div className="view-mode-selector">
-          <label>View Mode:</label>
-          <div className="view-mode-buttons">
-            <button
-              className={`view-mode-btn ${viewMode === 'hierarchy' ? 'active' : ''}`}
-              onClick={() => setViewMode('hierarchy')}
-            >
-              Hierarchy
-            </button>
-            <button
-              className={`view-mode-btn ${viewMode === 'network' ? 'active' : ''}`}
-              onClick={() => setViewMode('network')}
-            >
-              Network
-            </button>
-            <button
-              className={`view-mode-btn ${viewMode === 'cloud' ? 'active' : ''}`}
-              onClick={() => setViewMode('cloud')}
-            >
-              Cloud
-            </button>
-          </div>
-        </div>
-
-        <div className="mapping-filters">
-          <div className="filter-group">
-            <label>
-              <FontAwesomeIcon icon={faFilter} />
-              Location
-            </label>
-            <input
-              type="text"
-              placeholder="Filter by location..."
-              value={filters.location || ''}
-              onChange={(e) => handleLocationFilterChange(e.target.value)}
-              className="filter-input"
-            />
-          </div>
-
-          <div className="filter-group filter-group-cloud">
-            <label>
-              <FontAwesomeIcon icon={faFilter} />
-              Cloud Provider
-            </label>
-            <div className="cloud-provider-filters">
+        {/* Top row: View Mode Selector */}
+        <div className="controls-row top-row">
+          <div className="view-mode-selector">
+            <label>View Mode:</label>
+            <div className="view-mode-buttons">
               <button
-                className={`cloud-filter-btn ${!filters.cloudProvider ? 'active' : ''}`}
-                onClick={() => handleCloudProviderFilterChange('')}
-                title="All Providers"
+                className={`view-mode-btn ${viewMode === 'hierarchy' ? 'active' : ''}`}
+                onClick={() => setViewMode('hierarchy')}
+                title="Vue hiérarchique"
               >
-                All
+                <FontAwesomeIcon icon={faSitemap} />
+                <span>Hierarchy</span>
               </button>
               <button
-                className={`cloud-filter-btn ${filters.cloudProvider === CloudProviderType.AWS ? 'active' : ''}`}
-                onClick={() => handleCloudProviderFilterChange(CloudProviderType.AWS)}
-                title="AWS"
+                className={`view-mode-btn ${viewMode === 'network' ? 'active' : ''}`}
+                onClick={() => setViewMode('network')}
+                title="Vue réseau"
               >
-                <CloudProviderIcon provider={CloudProviderType.AWS} size="lg" />
+                <FontAwesomeIcon icon={faNetworkWired} />
+                <span>Network</span>
               </button>
               <button
-                className={`cloud-filter-btn ${filters.cloudProvider === CloudProviderType.AZURE ? 'active' : ''}`}
-                onClick={() => handleCloudProviderFilterChange(CloudProviderType.AZURE)}
-                title="Azure"
+                className={`view-mode-btn ${viewMode === 'cloud' ? 'active' : ''}`}
+                onClick={() => setViewMode('cloud')}
+                title="Vue cloud"
               >
-                <CloudProviderIcon provider={CloudProviderType.AZURE} size="lg" />
-              </button>
-              <button
-                className={`cloud-filter-btn ${filters.cloudProvider === CloudProviderType.GCP ? 'active' : ''}`}
-                onClick={() => handleCloudProviderFilterChange(CloudProviderType.GCP)}
-                title="GCP"
-              >
-                <CloudProviderIcon provider={CloudProviderType.GCP} size="lg" />
-              </button>
-              <button
-                className={`cloud-filter-btn ${filters.cloudProvider === CloudProviderType.SCALEWAY ? 'active' : ''}`}
-                onClick={() => handleCloudProviderFilterChange(CloudProviderType.SCALEWAY)}
-                title="Scaleway"
-              >
-                <CloudProviderIcon provider={CloudProviderType.SCALEWAY} size="lg" />
-              </button>
-              <button
-                className={`cloud-filter-btn ${filters.cloudProvider === CloudProviderType.OVH ? 'active' : ''}`}
-                onClick={() => handleCloudProviderFilterChange(CloudProviderType.OVH)}
-                title="OVH"
-              >
-                <CloudProviderIcon provider={CloudProviderType.OVH} size="lg" />
+                <FontAwesomeIcon icon={faCloud} />
+                <span>Cloud</span>
               </button>
             </div>
           </div>
 
-          {(filters.location || filters.cloudProvider) && (
+          {(filters.searchQuery || filters.cloudProvider) && (
             <button onClick={clearFilters} className="clear-filters-button">
               Clear Filters
             </button>
           )}
+        </div>
+
+        {/* Bottom row: Filters */}
+        <div className="controls-row bottom-row">
+          <div className="mapping-filters">
+            <div className="filter-group">
+              <label>
+                <FontAwesomeIcon icon={faSearch} />
+                Recherche globale
+              </label>
+              <input
+                type="text"
+                placeholder="Rechercher par nom, CIDR, description, localisation..."
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="filter-input search-input"
+              />
+            </div>
+
+            <div className="filter-group filter-group-cloud">
+              <label>
+                <FontAwesomeIcon icon={faFilter} />
+                Cloud Provider
+              </label>
+              <div className="cloud-provider-filters">
+                <button
+                  className={`cloud-filter-btn ${!filters.cloudProvider ? 'active' : ''}`}
+                  onClick={() => handleCloudProviderFilterChange('')}
+                  title="All Providers"
+                >
+                  All
+                </button>
+                <button
+                  className={`cloud-filter-btn ${filters.cloudProvider === CloudProviderType.AWS ? 'active' : ''}`}
+                  onClick={() => handleCloudProviderFilterChange(CloudProviderType.AWS)}
+                  title="AWS"
+                >
+                  <CloudProviderIcon provider={CloudProviderType.AWS} size="lg" />
+                </button>
+                <button
+                  className={`cloud-filter-btn ${filters.cloudProvider === CloudProviderType.AZURE ? 'active' : ''}`}
+                  onClick={() => handleCloudProviderFilterChange(CloudProviderType.AZURE)}
+                  title="Azure"
+                >
+                  <CloudProviderIcon provider={CloudProviderType.AZURE} size="lg" />
+                </button>
+                <button
+                  className={`cloud-filter-btn ${filters.cloudProvider === CloudProviderType.GCP ? 'active' : ''}`}
+                  onClick={() => handleCloudProviderFilterChange(CloudProviderType.GCP)}
+                  title="GCP"
+                >
+                  <CloudProviderIcon provider={CloudProviderType.GCP} size="lg" />
+                </button>
+                <button
+                  className={`cloud-filter-btn ${filters.cloudProvider === CloudProviderType.SCALEWAY ? 'active' : ''}`}
+                  onClick={() => handleCloudProviderFilterChange(CloudProviderType.SCALEWAY)}
+                  title="Scaleway"
+                >
+                  <CloudProviderIcon provider={CloudProviderType.SCALEWAY} size="lg" />
+                </button>
+                <button
+                  className={`cloud-filter-btn ${filters.cloudProvider === CloudProviderType.OVH ? 'active' : ''}`}
+                  onClick={() => handleCloudProviderFilterChange(CloudProviderType.OVH)}
+                  title="OVH"
+                >
+                  <CloudProviderIcon provider={CloudProviderType.OVH} size="lg" />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -241,7 +263,7 @@ function SubnetMappingPage() {
             <FontAwesomeIcon icon={faNetworkWired} className="empty-icon" />
             <h3>No subnets to display</h3>
             <p>
-              {filters.location || filters.cloudProvider
+              {filters.searchQuery || filters.cloudProvider
                 ? 'Try adjusting your filters to see more subnets.'
                 : 'Create some subnets to see the network mapping.'}
             </p>

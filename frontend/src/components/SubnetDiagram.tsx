@@ -500,8 +500,7 @@ function SubnetDiagram({ subnets, connections = [], viewMode, isFullscreen }: Su
         stroke: '#6B7280',
         strokeWidth: '2',
         strokeDasharray: '0',
-        opacity: 0.6,
-        markerEnd: 'url(#arrowhead-parent)'
+        opacity: 0.6
       };
     }
     
@@ -574,8 +573,7 @@ function SubnetDiagram({ subnets, connections = [], viewMode, isFullscreen }: Su
         stroke: color,
         strokeWidth,
         strokeDasharray: dashArray,
-        opacity,
-        markerEnd: 'url(#arrowhead-network)'
+        opacity
       };
     }
     
@@ -689,34 +687,9 @@ function SubnetDiagram({ subnets, connections = [], viewMode, isFullscreen }: Su
           transformOrigin: '0 0'
         }}
       >
-        {/* Définitions des marqueurs de flèches */}
+        {/* Définitions pour les styles */}
         <defs>
-          <marker
-            id="arrowhead-network"
-            markerWidth="10"
-            markerHeight="7"
-            refX="9"
-            refY="3.5"
-            orient="auto"
-          >
-            <polygon
-              points="0 0, 10 3.5, 0 7"
-              fill="currentColor"
-            />
-          </marker>
-          <marker
-            id="arrowhead-parent"
-            markerWidth="8"
-            markerHeight="6"
-            refX="7"
-            refY="3"
-            orient="auto"
-          >
-            <polygon
-              points="0 0, 8 3, 0 6"
-              fill="#6B7280"
-            />
-          </marker>
+          {/* Pas de marqueurs de flèches nécessaires */}
         </defs>
 
         {/* Connections */}
@@ -737,7 +710,6 @@ function SubnetDiagram({ subnets, connections = [], viewMode, isFullscreen }: Su
                 strokeWidth={style.strokeWidth}
                 strokeDasharray={style.strokeDasharray}
                 opacity={style.opacity}
-                markerEnd={style.markerEnd}
                 className="connection-line"
                 style={{ color: style.stroke }}
               />

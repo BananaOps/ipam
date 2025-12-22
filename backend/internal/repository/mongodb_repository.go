@@ -159,6 +159,7 @@ func (r *MongoDBRepository) FindAll(ctx context.Context, filters *SubnetFilters)
 				{"name": bson.M{"$regex": filters.SearchQuery, "$options": "i"}},
 				{"cidr": bson.M{"$regex": filters.SearchQuery, "$options": "i"}},
 				{"description": bson.M{"$regex": filters.SearchQuery, "$options": "i"}},
+				{"location": bson.M{"$regex": filters.SearchQuery, "$options": "i"}},
 			}
 		}
 	}
@@ -420,6 +421,8 @@ func (r *MongoDBRepository) ListSubnets(ctx context.Context, filters SubnetFilte
 		filter["$or"] = []bson.M{
 			{"name": bson.M{"$regex": filters.SearchQuery, "$options": "i"}},
 			{"cidr": bson.M{"$regex": filters.SearchQuery, "$options": "i"}},
+			{"description": bson.M{"$regex": filters.SearchQuery, "$options": "i"}},
+			{"location": bson.M{"$regex": filters.SearchQuery, "$options": "i"}},
 		}
 	}
 
